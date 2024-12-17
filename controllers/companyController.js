@@ -1,6 +1,6 @@
 import CompanyList from '../models/CompanyList.js';
 import nodemailer from 'nodemailer';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 // Helper to generate a random employee code
