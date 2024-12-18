@@ -2,6 +2,8 @@ import Worker from '../models/Worker.js';
 import CompanyList from '../models/CompanyList.js';
 import nodemailer from 'nodemailer';
 
+const generateEmpCode = () => `EMP${Math.floor(1000 + Math.random() * 9000)}`;
+
 // Function to send email to the worker
 const sendWorkerEmail = async (email, name, role) => {
   const transporter = nodemailer.createTransport({
@@ -19,6 +21,11 @@ const sendWorkerEmail = async (email, name, role) => {
     text: `Hello ${name},
 
 Welcome to the company! Your role is: ${role}.
+Your credentials are:
+
+Email: ${email}
+Employee Code: ${workCode}
+Please keep these credentials safe.
 
 We are excited to have you on board.
 
@@ -52,6 +59,8 @@ export const addWorker = async (req, res) => {
       return res.status(400).json({ message: 'Worker already exists in this company.' });
     }
 
+    const workCode = generateEmpCode();
+
     // Create and save the new worker
     const newWorker = new Worker({
       name,
@@ -62,12 +71,13 @@ export const addWorker = async (req, res) => {
       address,
       joiningDate,
       company: companyId,
+      work_code:workCode,
     });
 
     await newWorker.save();
 
     // Send email to the worker
-    await sendWorkerEmail(email, name, role);
+    await sendWorkerEmail(email, name, role, workCode);
 
     res.status(201).json({ message: 'Worker added successfully!', worker: newWorker });
   } catch (error) {
