@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer';
 const generateEmpCode = () => `EMP${Math.floor(1000 + Math.random() * 9000)}`;
 
 // Function to send email to the worker
-const sendWorkerEmail = async (email, name, role) => {
+const sendWorkerEmail = async (email, name, role, workCode) => {
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
