@@ -26,7 +26,8 @@ const sendEmail = async (to, subject, text) => {
 };
 
 
-export const registerUser = async (req, res) => {
+
+export const registerUser  = async (req, res) => {
   const { username, email, phone, address, postcode, password, userType } = req.body;
 
   try {
@@ -46,8 +47,9 @@ export const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create new user based on userType
+    let newUser ;
     if (userType === 'individual') {
-      const newUser = new Individual({
+      newUser  = new Individual({
         username,
         email,
         phone,
@@ -55,14 +57,18 @@ export const registerUser = async (req, res) => {
         postcode,
         password: hashedPassword,
       });
-      await newUser.save();
-      return res.status(200).json({ message: 'Registration successful' });
+      await newUser .save();
     } else if (userType === 'company') {
       // Handle company registration (Agency under construction message)
       return res.status(400).json({ message: 'Agency under construction. Please try registering as an individual.' });
     } else {
       return res.status(400).json({ message: 'Invalid user type selected.' });
     }
+
+    // Set session for the newly registered user
+    req.session.user = { id: newUser ._id, username: newUser .username, userType };
+
+    return res.status(200).json({ message: 'Registration successful', user: req.session.user });
 
   } catch (error) {
     console.error(error);
