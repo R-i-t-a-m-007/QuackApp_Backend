@@ -1,7 +1,50 @@
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import Company from '../models/Company.js';
 import Individual from '../models/Individual.js';
+import nodemailer from 'nodemailer';
+
+const sendEmail = async (to, subject, text) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail', // Use your email service
+    auth: {
+      user: process.env.EMAIL_USER, // Your email
+      pass: process.env.EMAIL_PASS, // Your email password or app password
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject,
+    text,
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Check if the email exists in either collection
+    const user = await Individual.findOne({ email }) || await Company.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Email not found.' });
+    }
+
+    // Send email with the current password
+    const subject = 'Your Password Request';
+    const text = `Your current password is: ${user.password}\nPlease keep it secure and change it after logging in.`;
+    await sendEmail(email, subject, text);
+
+    res.status(200).json({ message: 'Your current password has been sent to your email.' });
+  } catch (error) {
+    console.error('Error in forgot password:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
 
 
 export const registerUser = async (req, res) => {
