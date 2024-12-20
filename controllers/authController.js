@@ -25,29 +25,6 @@ const sendEmail = async (to, subject, text) => {
   return transporter.sendMail(mailOptions);
 };
 
-export const forgotPassword = async (req, res) => {
-  const { email } = req.body;
-
-  try {
-    // Check if the email exists in either collection
-    const user = await Individual.findOne({ email }) || await Company.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ message: 'Email not found.' });
-    }
-
-    // Send email with the current password
-    const subject = 'Your Password Request';
-    const text = `Your current password is: ${user.password}\nPlease keep it secure and change it after logging in.`;
-    await sendEmail(email, subject, text);
-
-    res.status(200).json({ message: 'Your current password has been sent to your email.' });
-  } catch (error) {
-    console.error('Error in forgot password:', error);
-    res.status(500).json({ message: 'Server error. Please try again later.' });
-  }
-};
-
 
 export const registerUser = async (req, res) => {
   const { username, email, phone, address, postcode, password, userType } = req.body;
@@ -206,6 +183,11 @@ export const resetPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'Email not found.' });
     }
+
+    console.log('Stored OTP:', user.otp);
+    console.log('Entered OTP:', otp);
+    console.log('OTP Expiration:', user.otpExpire);
+    console.log('Current Time:', Date.now());
 
     // Check if OTP is valid
     if (user.otp !== otp || user.otpExpire < Date.now()) {
