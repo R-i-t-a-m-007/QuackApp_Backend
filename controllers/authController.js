@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import Company from '../models/Company.js';
 import Individual from '../models/Individual.js';
 import nodemailer from 'nodemailer';
+import crypto from 'crypto';
+
 
 const sendEmail = async (to, subject, text) => {
   const transporter = nodemailer.createTransport({
@@ -167,3 +169,58 @@ export const getSessionData = (req, res) => {
   }
 };
 
+export const requestOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await Individual.findOne({ email }) || await Company.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Email not found.' });
+    }
+
+    // Generate a 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.otp = otp;
+    user.otpExpire = Date.now() + 3600000; // OTP valid for 1 hour
+    await user.save();
+
+    // Send OTP to user's email
+    const subject = 'Your OTP for Password Reset';
+    const text = `Your OTP is: ${otp}. It is valid for 1 hour.`;
+    await sendEmail(email, subject, text);
+
+    res.status(200).json({ message: 'OTP sent to your email.' });
+  } catch (error) {
+    console.error('Error in sending OTP:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  try {
+    const user = await Individual.findOne({ email }) || await Company.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Email not found.' });
+    }
+
+    // Check if OTP is valid
+    if (user.otp !== otp || user.otpExpire < Date.now()) {
+      return res.status(400).json({ message: 'Invalid or expired OTP.' });
+    }
+
+    // Hash the new password
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.otp = null; // Clear OTP after use
+    user.otpExpire = null; // Clear OTP expiration
+    await user.save();
+
+    res.status(200).json({ message: 'Password has been reset successfully.' });
+  } catch (error) {
+    console.error('Error in resetting password:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
