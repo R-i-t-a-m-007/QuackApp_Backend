@@ -68,6 +68,11 @@ export const registerUser  = async (req, res) => {
     // Set session for the newly registered user
     req.session.user = { id: newUser ._id, username: newUser .username, userType };
 
+    // Send a welcome email to the user
+    const subject = 'Welcome to Our Service!';
+    const text = `Hello ${username},\n\nThank you for signing up! We're excited to have you on board.\n\nBest regards,\nThe Team`;
+    await sendEmail(email, subject, text); // Send the email
+
     return res.status(200).json({ message: 'Registration successful', user: req.session.user });
 
   } catch (error) {
@@ -75,7 +80,6 @@ export const registerUser  = async (req, res) => {
     res.status(500).json({ message: 'Registration failed. Please try again later.' });
   }
 };
-
 
 export const loginUser = async (req, res) => {
   const { username, password, userType } = req.body;
