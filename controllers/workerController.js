@@ -195,10 +195,10 @@ export const getWorkerById = async (req, res) => {
 };
 
 export const workerLogin = async (req, res) => {
-  const { email, password } = req.body;
+  const { work_code, password } = req.body;
 
   try {
-    const worker = await Worker.findOne({ email });
+    const worker = await Worker.findOne({ work_code });
     if (!worker) {
       return res.status(404).json({ message: 'Worker not found.' });
     }
