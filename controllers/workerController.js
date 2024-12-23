@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer';
 const generateEmpCode = () => `EMP${Math.floor(1000 + Math.random() * 9000)}`;
 
 // Function to send email to the worker
-const sendWorkerEmail = async (email, name, role, workCode) => {
+const sendWorkerEmail = async (email, name, role, workCode, password) => {
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
@@ -25,6 +25,7 @@ Your credentials are:
 
 Email: ${email}
 Employee Code: ${workCode}
+Password: ${password}
 Please keep these credentials safe.
 
 We are excited to have you on board.
@@ -43,7 +44,7 @@ The QuackApp Team`,
 
 // Add a new worker
 export const addWorker = async (req, res) => {
-  const { name, email, phone, role, department, address, joiningDate } = req.body;
+  const { name, email, phone, role, department, address, joiningDate, password } = req.body;
 
   try {
     // Ensure a company is logged in
@@ -72,12 +73,13 @@ export const addWorker = async (req, res) => {
       joiningDate,
       company: companyId,
       work_code:workCode,
+      password,
     });
 
     await newWorker.save();
 
     // Send email to the worker
-    await sendWorkerEmail(email, name, role, workCode);
+    await sendWorkerEmail(email, name, role, workCode, password);
 
     res.status(201).json({ message: 'Worker added successfully!', worker: newWorker });
   } catch (error) {
@@ -190,4 +192,35 @@ export const getWorkerById = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Server error.' });
   }
+};
+
+export const workerLogin = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const worker = await Worker.findOne({ email });
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, worker.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid password.' });
+    }
+
+    req.session.worker = worker; // Store the worker in the session
+    res.status(200).json({ message: 'Login successful', worker });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+export const workerLogout = (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error logging out.' });
+    }
+    res.status(200).json({ message: 'Logged out successfully.' });
+  });
 };
