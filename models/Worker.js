@@ -10,7 +10,6 @@ const workerSchema = new mongoose.Schema({
   joiningDate: { type: Date, required: true }, // New field
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'CompanyList', required: true }, // Link to the CompanyList model
   work_code: { type: String, required: true },
-  password: { type: String, required: true },
 });
 
 const Worker = mongoose.model('Worker', workerSchema);
