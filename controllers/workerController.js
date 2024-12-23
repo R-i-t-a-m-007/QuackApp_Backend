@@ -1,7 +1,6 @@
 import Worker from '../models/Worker.js';
 import CompanyList from '../models/CompanyList.js';
 import nodemailer from 'nodemailer';
-import bcrypt from 'bcryptjs';
 
 const generateEmpCode = () => `EMP${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -61,15 +60,6 @@ export const addWorker = async (req, res) => {
       return res.status(400).json({ message: 'Worker already exists in this company.' });
     }
 
-    // Ensure password is provided
-    if (!password) {
-      return res.status(400).json({ message: 'Password is required.' });
-    }
-
-    // Hash the password before saving
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     const workCode = generateEmpCode();
 
     // Create and save the new worker
@@ -82,8 +72,8 @@ export const addWorker = async (req, res) => {
       address,
       joiningDate,
       company: companyId,
-      work_code: workCode,
-      password: hashedPassword, // Store the hashed password
+      work_code:workCode,
+      password,
     });
 
     await newWorker.save();
@@ -150,8 +140,10 @@ export const updateWorker = async (req, res) => {
 };
 
 // Delete a worker
+// Delete a worker
 export const deleteWorker = async (req, res) => {
-  const { workerId } = req.params;
+  
+  const { workerId } = req.params; // Corrected line
 
   try {
     // Ensure a company is logged in
@@ -174,6 +166,7 @@ export const deleteWorker = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
 
 // Fetch a single worker by ID
 export const getWorkerById = async (req, res) => {
@@ -198,55 +191,5 @@ export const getWorkerById = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error.' });
-  }
-};
-
-// Worker login
-export const workerLogin = async (req, res) => {
-  const { work_code, password } = req.body;
-
-  try {
-    if (!password) {
-      return res.status(400).json({ message: 'Password is required.' });
-    }
-
-    const worker = await Worker.findOne({ work_code });
-    if (!worker) {
-      return res.status(404).json({ message: 'Worker not found.' });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, worker.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid password.' });
-    }
-
-    req.session.worker = worker; // Store the worker in the session
-    res.status(200).json({ message: 'Login successful', worker });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error.' });
-  }
-};
-
-// Worker logout
-export const workerLogout = (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Error logging out.' });
-    }
-    res.status(200).json({ message: 'Logged out successfully.' });
-  });
-};
-
-// Get logged-in worker details
-export const getLoggedInWorker = async (req, res) => {
-  try {
-    const worker = await Worker.findById(req.session.userId);
-    if (!worker) return res.status(404).json({ message: 'Worker not found' });
-
-    res.status(200).json({ worker });
-  } catch (error) {
-    console.error('Error fetching worker:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
