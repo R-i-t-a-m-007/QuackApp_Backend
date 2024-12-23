@@ -8,6 +8,6 @@ const router = express.Router();
 router.post('/add', sessionMiddleware, addWorker);
 router.get('/list', sessionMiddleware, getWorkers);
 router.put('/:workerId', sessionMiddleware, updateWorker);
-router.delete('/workers/:workerId', deleteWorker);
+router.delete('/:workerId', deleteWorker);
 
 export default router;
