@@ -1,6 +1,7 @@
 import Worker from '../models/Worker.js';
 import CompanyList from '../models/CompanyList.js';
 import nodemailer from 'nodemailer';
+import bcrypt from 'bcryptjs'; // Import bcrypt for password hashing
 
 const generateEmpCode = () => `EMP${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -62,6 +63,9 @@ export const addWorker = async (req, res) => {
 
     const workCode = generateEmpCode();
 
+    // Hash the password before saving
+    const hashedPassword = await bcrypt.hash(password, 10); // 10 is the salt rounds
+
     // Create and save the new worker
     const newWorker = new Worker({
       name,
@@ -72,14 +76,14 @@ export const addWorker = async (req, res) => {
       address,
       joiningDate,
       company: companyId,
-      work_code:workCode,
-      password,
+      work_code: workCode,
+      password: hashedPassword, // Store the hashed password
     });
 
     await newWorker.save();
 
     // Send email to the worker
-    await sendWorkerEmail(email, name, role, workCode, password);
+    await sendWorkerEmail(email, name, role, workCode, password); // Send the plain password
 
     res.status(201).json({ message: 'Worker added successfully!', worker: newWorker });
   } catch (error) {
@@ -140,10 +144,8 @@ export const updateWorker = async (req, res) => {
 };
 
 // Delete a worker
-// Delete a worker
 export const deleteWorker = async (req, res) => {
-  
-  const { workerId } = req.params; // Corrected line
+  const { workerId } = req.params;
 
   try {
     // Ensure a company is logged in
@@ -166,7 +168,6 @@ export const deleteWorker = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
-
 
 // Fetch a single worker by ID
 export const getWorkerById = async (req, res) => {
