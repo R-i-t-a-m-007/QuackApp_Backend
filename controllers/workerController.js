@@ -61,6 +61,15 @@ export const addWorker = async (req, res) => {
       return res.status(400).json({ message: 'Worker already exists in this company.' });
     }
 
+    // Ensure password is provided
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required.' });
+    }
+
+    // Hash the password before saving
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const workCode = generateEmpCode();
 
     // Create and save the new worker
@@ -73,8 +82,8 @@ export const addWorker = async (req, res) => {
       address,
       joiningDate,
       company: companyId,
-      work_code:workCode,
-      password,
+      work_code: workCode,
+      password: hashedPassword, // Store the hashed password
     });
 
     await newWorker.save();
@@ -141,10 +150,8 @@ export const updateWorker = async (req, res) => {
 };
 
 // Delete a worker
-// Delete a worker
 export const deleteWorker = async (req, res) => {
-  
-  const { workerId } = req.params; // Corrected line
+  const { workerId } = req.params;
 
   try {
     // Ensure a company is logged in
@@ -167,7 +174,6 @@ export const deleteWorker = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
-
 
 // Fetch a single worker by ID
 export const getWorkerById = async (req, res) => {
@@ -195,10 +201,15 @@ export const getWorkerById = async (req, res) => {
   }
 };
 
+// Worker login
 export const workerLogin = async (req, res) => {
   const { work_code, password } = req.body;
 
   try {
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required.' });
+    }
+
     const worker = await Worker.findOne({ work_code });
     if (!worker) {
       return res.status(404).json({ message: 'Worker not found.' });
@@ -217,6 +228,7 @@ export const workerLogin = async (req, res) => {
   }
 };
 
+// Worker logout
 export const workerLogout = (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -226,6 +238,7 @@ export const workerLogout = (req, res) => {
   });
 };
 
+// Get logged-in worker details
 export const getLoggedInWorker = async (req, res) => {
   try {
     const worker = await Worker.findById(req.session.userId);
