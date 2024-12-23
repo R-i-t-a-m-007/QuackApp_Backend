@@ -17,7 +17,7 @@ const sendWorkerEmail = async (email, name, role, workCode, password) => {
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: email,
+    to: email, // Ensure this is a valid email
     subject: 'Welcome to the Company',
     text: `Hello ${name},
 
@@ -34,6 +34,8 @@ We are excited to have you on board.
 Best regards,
 The QuackApp Team`,
   };
+
+  console.log('Mail options:', mailOptions); // Log mail options for debugging
 
   try {
     await transporter.sendMail(mailOptions);
