@@ -1,6 +1,7 @@
 import Worker from '../models/Worker.js';
 import CompanyList from '../models/CompanyList.js';
 import nodemailer from 'nodemailer';
+import bcrypt from 'bcryptjs';
 
 const generateEmpCode = () => `EMP${Math.floor(1000 + Math.random() * 9000)}`;
 
