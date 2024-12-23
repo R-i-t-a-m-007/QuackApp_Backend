@@ -1,11 +1,12 @@
 import Worker from '../models/Worker.js';
 import CompanyList from '../models/CompanyList.js';
 import nodemailer from 'nodemailer';
+import { bcrypt } from 'bcryptjs';
 
 const generateEmpCode = () => `EMP${Math.floor(1000 + Math.random() * 9000)}`;
 
 // Function to send email to the worker
-const sendWorkerEmail = async (email, name, role, workCode) => {
+const sendWorkerEmail = async (email, name, role, workCode, password) => {
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
@@ -25,6 +26,7 @@ Your credentials are:
 
 Email: ${email}
 Employee Code: ${workCode}
+Password: ${password}
 Please keep these credentials safe.
 
 We are excited to have you on board.
@@ -43,7 +45,7 @@ The QuackApp Team`,
 
 // Add a new worker
 export const addWorker = async (req, res) => {
-  const { name, email, phone, role, department, address, joiningDate } = req.body;
+  const { name, email, phone, role, department, address, joiningDate, password } = req.body;
 
   try {
     // Ensure a company is logged in
@@ -60,6 +62,7 @@ export const addWorker = async (req, res) => {
     }
 
     const workCode = generateEmpCode();
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create and save the new worker
     const newWorker = new Worker({
@@ -72,12 +75,13 @@ export const addWorker = async (req, res) => {
       joiningDate,
       company: companyId,
       work_code:workCode,
+      password:hashedPassword,
     });
 
     await newWorker.save();
 
     // Send email to the worker
-    await sendWorkerEmail(email, name, role, workCode);
+    await sendWorkerEmail(email, name, role, workCode, password);
 
     res.status(201).json({ message: 'Worker added successfully!', worker: newWorker });
   } catch (error) {
