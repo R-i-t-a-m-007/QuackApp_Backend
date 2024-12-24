@@ -195,3 +195,30 @@ export const getWorkerById = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
+// Function to log in a worker
+export const loginWorker = async (req, res) => {
+  const { workerCode, password } = req.body;
+
+  try {
+    // Find the worker by worker code
+    const worker = await Worker.findOne({ work_code: workerCode });
+    
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    // Compare the provided password with the stored hashed password
+    const isMatch = await bcrypt.compare(password, worker.password);
+    
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid password.' });
+    }
+
+    // If login is successful, return a success message without any data
+    res.status(200).json({ message: 'Login successful.' });
+  } catch (error) {
+    console.error('Error during worker login:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
