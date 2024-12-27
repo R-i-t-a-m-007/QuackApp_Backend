@@ -69,13 +69,19 @@ export const companyLogin = async (req, res) => {
 
 export const addCompany = async (req, res) => {
   const { name, email, phone, address, country, city, postcode, password } = req.body;
-  const userId = req.session.user.id; // Get the user ID from the sessionƒ
+  const userId = req.session.user.id; // Get the user ID from the session
 
   try {
-    // Check if the company already exists
-    const existingCompany = await CompanyList.findOne({ email, user: userId });
-    if (existingCompany) {
-      return res.status(400).json({ message: 'Company already exists.' });
+    // Check if the company already exists by email
+    const existingCompanyByEmail = await CompanyList.findOne({ email });
+    if (existingCompanyByEmail) {
+      return res.status(400).json({ message: 'Email already exists.' });
+    }
+
+    // Check if the username already exists (assuming you have a username field)
+    const existingCompanyByUsername = await CompanyList.findOne({ username: req.body.username });
+    if (existingCompanyByUsername) {
+      return res.status(400).json({ message: 'Username already exists.' });
     }
 
     // Generate a unique employee code
@@ -100,9 +106,6 @@ export const addCompany = async (req, res) => {
 
     // Save the company in the database
     await newCompany.save();
-
-    console.log('Email User:', process.env.EMAIL_USER);
-    console.log('Email Pass:', process.env.EMAIL_PASS ? 'Loaded' : 'Not Loaded');
 
     // Send email with registration info (plain text password for user reference)
     await sendEmail(email, compCode, password);
