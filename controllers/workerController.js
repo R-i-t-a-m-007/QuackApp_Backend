@@ -198,27 +198,120 @@ export const getWorkerById = async (req, res) => {
 
 // Function to log in a worker
 export const loginWorker = async (req, res) => {
-  const { workerCode, password } = req.body;
+  const { work_code, password } = req.body;
 
   try {
-    // Find the worker by worker code
-    const worker = await Worker.findOne({ work_code: workerCode });
-    
+    const worker = await Worker.findOne({ work_code });
+
+    if (!worker || !(await bcrypt.compare(password, worker.password))) {
+      return res.status(401).json({ message: 'Invalid work code or password.' });
+    }
+
+    // Create a session for the logged-in worker
+    req.session.worker = { _id: worker._id, work_code: worker.work_code };
+
+    res.status(200).json({ message: 'Login successful.', worker });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+export const updateWorkerAvailability = async (req, res) => {
+  const { workerId } = req.params;
+  const { availability } = req.body;
+
+  try {
+    // Ensure a worker is logged in
+    if (!req.session.worker || req.session.worker._id !== workerId) {
+      return res.status(401).json({ message: 'Unauthorized access.' });
+    }
+
+    // Update worker's availability
+    const updatedWorker = await Worker.findByIdAndUpdate(
+      workerId,
+      { availability },
+      { new: true }
+    );
+
+    if (!updatedWorker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    res.status(200).json({ message: 'Worker availability updated successfully.', worker: updatedWorker });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+export const getWorkerAvailability = async (req, res) => {
+  const { workerId } = req.params;
+
+  try {
+    // Ensure a worker is logged in
+    if (!req.session.worker || req.session.worker._id !== workerId) {
+      return res.status(401).json({ message: 'Unauthorized access.' });
+    }
+
+    // Fetch worker's availability
+    const worker = await Worker.findById(workerId).select('availability');
+
     if (!worker) {
       return res.status(404).json({ message: 'Worker not found.' });
     }
 
-    // Compare the provided password with the stored hashed password
-    const isMatch = await bcrypt.compare(password, worker.password);
-    
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid password.' });
-    }
-
-    // If login is successful, return a success message without any data
-    res.status(200).json({ message: 'Login successful.' });
+    res.status(200).json({ availability: worker.availability });
   } catch (error) {
-    console.error('Error during worker login:', error);
+    console.error(error);
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
+
+export const logoutWorker = async (req, res) => {
+  try {
+    // Ensure a worker is logged in
+    if (!req.session.worker) {
+      return res.status(401).json({ message: 'No worker logged in.' });
+    }
+
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Error during logout:', err);
+        return res.status(500).json({ message: 'Logout failed.' });
+      }
+
+      res.clearCookie('connect.sid'); // Clear session cookie
+      res.status(200).json({ message: 'Logged out successfully.' });
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+export const getLoggedInWorker = async (req, res) => {
+  try {
+    // Ensure a worker is logged in
+    if (!req.session.worker || !req.session.worker._id) {
+      return res.status(401).json({ message: 'No worker logged in.' });
+    }
+
+    const workerId = req.session.worker._id;
+
+    // Fetch all information for the logged-in worker
+    const worker = await Worker.findById(workerId);
+
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    res.status(200).json(worker);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+
