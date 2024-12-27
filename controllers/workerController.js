@@ -198,10 +198,10 @@ export const getWorkerById = async (req, res) => {
 
 // Function to log in a worker
 export const loginWorker = async (req, res) => {
-  const { work_code, password } = req.body;
+  const { workerCode, password } = req.body;
 
   try {
-    const worker = await Worker.findOne({ work_code:work_code });
+    const worker = await Worker.findOne({ work_code: workerCode });
 
     if (!worker || !(await bcrypt.compare(password, worker.password))) {
       return res.status(401).json({ message: 'Invalid work code or password.' });
