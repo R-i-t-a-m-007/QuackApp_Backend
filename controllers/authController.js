@@ -70,7 +70,7 @@ export const registerUser  = async (req, res) => {
 
     // Send a welcome email to the user
     const subject = 'Welcome to Our Service!';
-    const text = `Hello ${username},\n\nThank you for signing up! We're excited to have you on board.\n\nBest regards,\nThe Team`;
+    const text = "Dear ${username},\n\nThank you for registering as an individual. We are thrilled to have you as part of our community and look forward to supporting your journey with us.\n\nBelow are your account credentials for your reference:\n\n- Username: ${username}\n- Password: ${password}\n\nPlease ensure to keep this information secure. Should you have any questions or require assistance, feel free to reach out to our support team at any time.\n\nWarm regards,\nThe QuackApp Team";
     await sendEmail(email, subject, text); // Send the email
 
     return res.status(200).json({ message: 'Registration successful', user: req.session.user });
