@@ -1,5 +1,5 @@
 import express from 'express';
-import { addWorker, getWorkers, updateWorker, deleteWorker,loginWorker,logoutWorker,updateWorkerAvailability,getWorkerAvailability,getLoggedInWorker } from '../controllers/workerController.js';
+import { addWorker, getWorkers, updateWorker, deleteWorker,loginWorker,logoutWorker,updateWorkerAvailability,getLoggedInWorker } from '../controllers/workerController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
 const router = express.Router();
