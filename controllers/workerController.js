@@ -61,6 +61,12 @@ export const addWorker = async (req, res) => {
       return res.status(400).json({ message: 'Worker already exists in this company.' });
     }
 
+    // Check if the email already exists in the Worker model
+    const existingEmail = await Worker.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ message: 'Email already exists.' });
+    }
+
     const workCode = generateEmpCode();
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -74,8 +80,8 @@ export const addWorker = async (req, res) => {
       address,
       joiningDate,
       company: companyId,
-      work_code:workCode,
-      password:hashedPassword,
+      work_code: workCode,
+      password: hashedPassword,
     });
 
     await newWorker.save();
