@@ -216,13 +216,14 @@ export const loginWorker = async (req, res) => {
     // Create a session for the logged-in worker
     req.session.worker = { _id: worker._id, work_code: worker.work_code };
 
+    console.log('Worker logged in:', req.session.worker); // Debugging log
+
     res.status(200).json({ message: 'Login successful.', worker });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error.' });
   }
 };
-
 // Update worker's availability
 export const updateWorkerAvailability = async (req, res) => {
   const { workerId } = req.params;
