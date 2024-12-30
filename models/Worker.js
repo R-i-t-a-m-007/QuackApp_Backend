@@ -13,7 +13,7 @@ const workerSchema = new mongoose.Schema({
   password: { type: String, required: true },
   availability: [{
     date: { type: Date, required: true },
-    shifts: [{ type: String, enum: ['Morning', 'Afternoon', 'Evening'] }] // Store shifts as an array of strings
+    shift: { type: String, enum: ['Morning', 'Afternoon', 'Evening'], required: true } // Store a single shift
   }],
 });
 

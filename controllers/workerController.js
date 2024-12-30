@@ -227,7 +227,7 @@ export const loginWorker = async (req, res) => {
 // Update worker's availability
 export const updateWorkerAvailability = async (req, res) => {
   const { workerId } = req.params;
-  const { date, shifts } = req.body; // Expecting date and shifts from the request body
+  const { date, shift } = req.body; // Expecting date and single shift from the request body
 
   try {
     // Ensure a worker is logged in
@@ -238,7 +238,7 @@ export const updateWorkerAvailability = async (req, res) => {
     // Update worker's availability
     const updatedWorker = await Worker.findOneAndUpdate(
       { _id: workerId },
-      { $push: { availability: { date, shifts } } }, // Push new availability
+      { $push: { availability: { date, shift } } }, // Push new availability with single shift
       { new: true }
     );
 
