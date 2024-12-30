@@ -12,7 +12,6 @@ router.delete('/:workerId', deleteWorker);
 router.post('/login', loginWorker); // Add this line for worker login
 router.get('/me', getLoggedInWorker);
 router.put('/:workerId/availability', updateWorkerAvailability);
-router.get('/:workerId/availability', getWorkerAvailability);
 router.post('/logout', logoutWorker);
 
 

@@ -223,9 +223,10 @@ export const loginWorker = async (req, res) => {
   }
 };
 
+// Update worker's availability
 export const updateWorkerAvailability = async (req, res) => {
   const { workerId } = req.params;
-  const { availability } = req.body;
+  const { date, shifts } = req.body; // Expecting date and shifts from the request body
 
   try {
     // Ensure a worker is logged in
@@ -234,9 +235,9 @@ export const updateWorkerAvailability = async (req, res) => {
     }
 
     // Update worker's availability
-    const updatedWorker = await Worker.findByIdAndUpdate(
-      workerId,
-      { availability },
+    const updatedWorker = await Worker.findOneAndUpdate(
+      { _id: workerId },
+      { $push: { availability: { date, shifts } } }, // Push new availability
       { new: true }
     );
 
@@ -245,29 +246,6 @@ export const updateWorkerAvailability = async (req, res) => {
     }
 
     res.status(200).json({ message: 'Worker availability updated successfully.', worker: updatedWorker });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error.' });
-  }
-};
-
-export const getWorkerAvailability = async (req, res) => {
-  const { workerId } = req.params;
-
-  try {
-    // Ensure a worker is logged in
-    if (!req.session.worker || req.session.worker._id !== workerId) {
-      return res.status(401).json({ message: 'Unauthorized access.' });
-    }
-
-    // Fetch worker's availability
-    const worker = await Worker.findById(workerId).select('availability');
-
-    if (!worker) {
-      return res.status(404).json({ message: 'Worker not found.' });
-    }
-
-    res.status(200).json({ availability: worker.availability });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error.' });
