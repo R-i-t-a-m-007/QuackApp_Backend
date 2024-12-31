@@ -221,3 +221,11 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
+
+export const getSessionData = (req, res) => {
+  if (req.session.user) {
+    return res.status(200).json({ user: req.session.user });
+  } else {
+    return res.status(401).json({ message: 'No user logged in' });
+  }
+};
