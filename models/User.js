@@ -1,15 +1,20 @@
 import mongoose from 'mongoose';
 
-const IndividualSchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true },
   address: { type: String, required: true },
   postcode: { type: String, required: true },
   password: { type: String, required: true },
+  package: { 
+    type: String, 
+    enum: ['Basic', 'Pro'], 
+    required: true 
+  }, // Track the package selected by the user
   createdAt: { type: Date, default: Date.now },
   otp: { type: String }, // Add OTP field
   otpExpire: { type: Date } // Add OTP expiration field
 });
 
-export default mongoose.model('Individual', IndividualSchema);
+export default mongoose.model('User', UserSchema);

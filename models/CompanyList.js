@@ -8,11 +8,9 @@ const companyListSchema = new mongoose.Schema({
   country: { type: String, required: true },
   city: { type: String, required: true },
   postcode: { type: String, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Reference to the user who added this company
   password: { type: String, required: true }, // Add password field
-  comp_code: { type: String, required: true }, // Add employee code field
+  comp_code: { type: String, required: true }, // Add company code field
 });
 
-const CompanyList = mongoose.model('CompanyList', companyListSchema);
-
-export default CompanyList;
+export default mongoose.model('CompanyList', companyListSchema);
