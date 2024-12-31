@@ -10,11 +10,11 @@ const UserSchema = new mongoose.Schema({
   package: { 
     type: String, 
     enum: ['Basic', 'Pro'], 
-    required: true 
+    default: '', // Set default to empty string
   }, // Track the package selected by the user
   createdAt: { type: Date, default: Date.now },
   otp: { type: String }, // Add OTP field
   otpExpire: { type: Date } // Add OTP expiration field
 });
 
-export default mongoose.model('User', UserSchema);
+export default mongoose.model('User ', UserSchema);
