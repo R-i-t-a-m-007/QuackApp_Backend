@@ -10,7 +10,7 @@ const UserSchema = new mongoose.Schema({
   package: { 
     type: String, 
     enum: ['Basic', 'Pro'], 
-    default: '', // Set default to empty string
+    default: null, // Allow null as a default value
   }, // Track the package selected by the user
   createdAt: { type: Date, default: Date.now },
   otp: { type: String }, // Add OTP field
