@@ -59,6 +59,9 @@ export const companyLogin = async (req, res) => {
 
     // Create a session or token for the logged-in user
     req.session.company = company; // Assuming you want to store the company in the session
+    console.log(company);
+    console.log(req.session);
+    
     res.status(200).json({ message: 'Login successful', company });
   } catch (error) {
     console.error(error);
