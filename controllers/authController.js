@@ -163,7 +163,7 @@ export const storeSelectedPackage = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.selectedPackage = packageName;
+    user.package = packageName;
     await user.save();
 
     res.status(200).json({ message: 'Package selection saved successfully.' });
