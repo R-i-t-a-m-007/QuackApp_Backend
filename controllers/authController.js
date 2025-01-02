@@ -63,7 +63,7 @@ export const registerUser = async (req, res) => {
     const subject = 'Welcome to Our Service!';
     const text = `Dear ${username},
 
-Thank you for registering as an ${userType}. We are thrilled to have you as part of our community.
+Thank you for registering. We are thrilled to have you as part of our community.
     
 Your account credentials are:
 - Username: ${username}
