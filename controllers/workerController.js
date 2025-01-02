@@ -119,8 +119,8 @@ export const updateWorker = async (req, res) => {
 
   try {
     // Check if either a user or a company is logged in
-    const userId = req.session.user ? req.session.user._id : null;
-    const companyId = req.session.company ? req.session.company._id : null;
+    const userId = req.session.user ? req.session.user.id : null;
+    const companyId = req.session.company ? req.session.company.id : null;
 
     if (!userId && !companyId) {
       return res.status(401).json({ message: 'No user or company logged in.' });
@@ -150,8 +150,8 @@ export const deleteWorker = async (req, res) => {
 
   try {
     // Check if either a user or a company is logged in
-    const userId = req.session.user ? req.session.user._id : null;
-    const companyId = req.session.company ? req.session.company._id : null;
+    const userId = req.session.user ? req.session.user.id : null;
+    const companyId = req.session.company ? req.session.company.id : null;
 
     if (!userId && !companyId) {
       return res.status(401).json({ message: 'No user or company logged in.' });
@@ -177,8 +177,8 @@ export const getWorkerById = async (req, res) => {
 
   try {
     // Check if either a user or a company is logged in
-    const userId = req.session.user ? req.session.user._id : null;
-    const companyId = req.session.company ? req.session.company._id : null;
+    const userId = req.session.user ? req.session.user.id : null;
+    const companyId = req.session.company ? req.session.company.id : null;
 
     if (!userId && !companyId) {
       return res.status(401).json({ message: 'No user or company logged in.' });
