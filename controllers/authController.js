@@ -26,7 +26,7 @@ const sendEmail = async (to, subject, text) => {
 
 // Register User
 export const registerUser = async (req, res) => {
-  const { username, email, phone, address, postcode, password, userType } = req.body;
+  const { username, email, phone, address, postcode, password } = req.body;
 
   try {
     // Check if username or email already exists
@@ -52,13 +52,12 @@ export const registerUser = async (req, res) => {
       address,
       postcode,
       password: hashedPassword,
-      userType,
     });
 
     await newUser.save();
 
     // Set session for the newly registered user
-    req.session.user = { id: newUser._id, username: newUser.username, userType };
+    req.session.user = { id: newUser._id, username: newUser.username };
 
     // Send a welcome email
     const subject = 'Welcome to Our Service!';
@@ -84,30 +83,38 @@ The QuackApp Team`;
 };
 
 // Login User
+// Login User
 export const loginUser = async (req, res) => {
-  const { username, password, userType } = req.body;
+  const { username, password } = req.body;
 
   try {
-    const user = await User.findOne({ username, userType });
+    // Find the user by username
+    const user = await User.findOne({ username });
 
-    if (!user) return res.status(400).json({ message: 'Invalid credentials.' });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials.' });
+    }
 
+    // Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials.' });
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials.' });
+    }
 
     // Set session
-    req.session.user = { id: user._id, username: user.username, userType };
+    req.session.user = { id: user._id, username: user.username };
 
     // Generate JWT
-    const payload = { id: user._id, username: user.username, userType };
+    const payload = { id: user._id, username: user.username };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({ token, message: 'Login successful!', user: req.session.user });
   } catch (error) {
-    console.error(error);
+    console.error('Error during login:', error);
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
 
 // Logout User
 export const logoutUser = (req, res) => {
