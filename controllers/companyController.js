@@ -1,10 +1,9 @@
 import CompanyList from '../models/CompanyList.js';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 
-// Helper to generate a random employee code
-const generateEmpCode = () => `COMP${Math.floor(1000 + Math.random() * 9000)}`;
+// Helper to generate a random company code
+const generateCompCode = () => `COMP${Math.floor(1000 + Math.random() * 9000)}`;
 
 // Function to send email using Nodemailer
 const sendEmail = async (email, compCode, password) => {
@@ -30,7 +29,7 @@ Please keep these credentials safe.
 
 Best regards,
 The QuackApp Team`,
-              };
+  };
 
   try {
     await transporter.sendMail(mailOptions);
@@ -57,11 +56,8 @@ export const companyLogin = async (req, res) => {
       return res.status(401).json({ message: 'Invalid password.' });
     }
 
-    // Create a session or token for the logged-in user
-    req.session.company = company; // Assuming you want to store the company in the session
-    console.log(company);
-    console.log(req.session);
-    
+    // Create a session for the logged-in company
+    req.session.company = company; // Store the company in the session
     res.status(200).json({ message: 'Login successful', company });
   } catch (error) {
     console.error(error);
@@ -69,10 +65,9 @@ export const companyLogin = async (req, res) => {
   }
 };
 
-
+// Function to add a new company
 export const addCompany = async (req, res) => {
   const { name, email, phone, address, country, city, postcode, password } = req.body;
-  const userId = req.session.user.id; // Get the user ID from the session
 
   try {
     // Check if the company already exists by email
@@ -81,14 +76,8 @@ export const addCompany = async (req, res) => {
       return res.status(400).json({ message: 'Email already exists.' });
     }
 
-    // Check if the username already exists (assuming you have a username field)
-    const existingCompanyByUsername = await CompanyList.findOne({ username: req.body.username });
-    if (existingCompanyByUsername) {
-      return res.status(400).json({ message: 'Username already exists.' });
-    }
-
-    // Generate a unique employee code
-    const compCode = generateEmpCode();
+    // Generate a unique company code
+    const compCode = generateCompCode();
 
     // Hash the password before storing
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -102,9 +91,8 @@ export const addCompany = async (req, res) => {
       country,
       city,
       postcode,
-      user: userId,
       password: hashedPassword, // Store the hashed password
-      comp_code: compCode, // Store the generated employee code
+      comp_code: compCode, // Store the generated company code
     });
 
     // Save the company in the database
@@ -175,25 +163,24 @@ export const deleteCompany = async (req, res) => {
   }
 };
 
+// Logout function
 export const logout = (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       return res.status(500).json({ message: 'Error logging out' });
     }
 
-    // Send a response indicating the user has been logged out successfully
     res.status(200).json({ message: 'Logged out successfully' });
   });
 };
 
+// Get logged-in company details
 export const getLoggedInCompany = async (req, res) => {
   try {
-    // Check if the session contains a logged-in company
     if (!req.session.company || !req.session.company._id) {
       return res.status(401).json({ message: 'No company logged in.' });
     }
 
-    // Fetch the company details from the database, excluding the password
     const company = await CompanyList.findById(req.session.company._id).select('-password');
 
     if (!company) {
