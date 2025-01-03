@@ -1,6 +1,7 @@
 import CompanyList from '../models/CompanyList.js';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
+import User from '../models/User.js';
 
 // Helper to generate a random company code
 const generateCompCode = () => `COMP${Math.floor(1000 + Math.random() * 9000)}`;
