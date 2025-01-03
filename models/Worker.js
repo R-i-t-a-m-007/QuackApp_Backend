@@ -9,9 +9,10 @@ const workerSchema = new mongoose.Schema({
   address: { type: String, required: true },
   joiningDate: { type: Date, required: true },
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'CompanyList' }, // Optional: If linked to a company
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Reference to the user who added this worker
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User ' }, // Reference to the user who added this worker
   work_code: { type: String, required: true },
   password: { type: String, required: true },
+  package: { type: String, enum: ['Basic', 'Pro'], required: true }, // Store the user's package type
   availability: [{
     date: { type: Date, required: true },
     shift: { type: String, enum: ['Morning', 'Afternoon', 'Evening'], required: true }

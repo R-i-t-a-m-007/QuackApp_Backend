@@ -1,6 +1,7 @@
 import Worker from '../models/Worker.js';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
+import User from '../models/User.js';
 
 const generateEmpCode = () => `EMP${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -43,6 +44,7 @@ The QuackApp Team`,
 };
 
 // Add a new worker
+// Add a new worker
 export const addWorker = async (req, res) => {
   const { name, email, phone, role, department, address, joiningDate, password } = req.body;
 
@@ -64,6 +66,13 @@ export const addWorker = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Determine the user's package type
+    let userPackage = null;
+    if (userId) {
+      const user = await User.findById(userId);
+      userPackage = user.package; // Assuming the package is stored in the user object
+    }
+
     // Create and save the new worker
     const newWorker = new Worker({
       name,
@@ -77,6 +86,7 @@ export const addWorker = async (req, res) => {
       user: userId, // Link to the user who added the worker
       work_code: generateEmpCode(),
       password: hashedPassword,
+      package: userPackage, // Store the user's package type
     });
 
     await newWorker.save();
@@ -92,18 +102,31 @@ export const addWorker = async (req, res) => {
 };
 
 // Fetch all workers for the logged-in company or user
+// Fetch all workers for the logged-in company or user
 export const getWorkers = async (req, res) => {
   try {
     // Check if either a user or a company is logged in
     const userId = req.session.user ? req.session.user.id : null;
-    const companyId = req.session.company ? req.session.company._id : null;
+    const companyId = req.session.company ? req.session.company ._id : null;
 
     if (!userId && !companyId) {
       return res.status(401).json({ message: 'No user or company logged in.' });
     }
 
-    // Fetch all workers linked to the logged-in company or user
-    const workers = await Worker.find({ company: companyId });
+    // Determine the user's package type
+    let userPackage = null;
+    if (userId) {
+      const user = await User.findById(userId);
+      userPackage = user.package; // Assuming the package is stored in the user object
+    }
+
+    // Fetch all workers linked to the logged-in company or user, filtered by package type
+    const workers = await Worker.find({
+      $or: [
+        { user: userId, package: userPackage }, // Fetch workers added by the user with the same package
+        { company: companyId } // Fetch workers linked to the company
+      ]
+    });
 
     res.status(200).json(workers);
   } catch (error) {
@@ -112,6 +135,7 @@ export const getWorkers = async (req, res) => {
   }
 };
 
+// Update a worker's details
 // Update a worker's details
 export const updateWorker = async (req, res) => {
   const { workerId } = req.params;
@@ -128,7 +152,7 @@ export const updateWorker = async (req, res) => {
 
     // Update the worker linked to the logged-in company or user
     const updatedWorker = await Worker.findOneAndUpdate(
-      { _id: workerId, user: userId, company: companyId },
+      { _id: workerId, $or: [{ user: userId }, { company: companyId }] }, // Ensure the worker belongs to the user or company
       { name, email, phone, role, department, address, joiningDate },
       { new: true }
     );
@@ -145,6 +169,7 @@ export const updateWorker = async (req, res) => {
 };
 
 // Delete a worker
+// Delete a worker
 export const deleteWorker = async (req, res) => {
   const { workerId } = req.params;
 
@@ -158,7 +183,7 @@ export const deleteWorker = async (req, res) => {
     }
 
     // Delete the worker linked to the logged-in company or user
-    const deletedWorker = await Worker.findOneAndDelete({ _id: workerId, user: userId, company: companyId });
+    const deletedWorker = await Worker.findOneAndDelete({ _id: workerId, $or: [{ user: userId }, { company: companyId }] });
 
     if (!deletedWorker) {
       return res.status(404).json({ message: 'Worker not found or not authorized to delete.' });
