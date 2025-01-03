@@ -66,10 +66,29 @@ export const companyLogin = async (req, res) => {
 };
 
 // Function to add a new company
+// Function to add a new company
 export const addCompany = async (req, res) => {
   const { name, email, phone, address, country, city, postcode, password } = req.body;
 
   try {
+    // Check if the user is logged in
+    const userId = req.session.user ? req.session.user.id : null;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'No user logged in.' });
+    }
+
+    // Fetch the user to check their package
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User  not found.' });
+    }
+
+    // Check if the user has a pro package
+    if (user.package !== 'Pro') {
+      return res.status(403).json({ message: 'Only users with a Pro package can create a company.' });
+    }
+
     // Check if the company already exists by email
     const existingCompanyByEmail = await CompanyList.findOne({ email });
     if (existingCompanyByEmail) {
@@ -91,6 +110,7 @@ export const addCompany = async (req, res) => {
       country,
       city,
       postcode,
+      user: userId, // Link the company to the user
       password: hashedPassword, // Store the hashed password
       comp_code: compCode, // Store the generated company code
     });
@@ -109,11 +129,16 @@ export const addCompany = async (req, res) => {
 };
 
 // Fetch the list of companies associated with the logged-in user
+// Fetch the list of companies associated with the logged-in user
 export const getCompanies = async (req, res) => {
-  const userId = req.session.user.id; // Get the user ID from the session
+  const userId = req.session.user ? req.session.user.id : null; // Get the user ID from the session
 
   try {
-    const companies = await CompanyList.find({ user: userId });
+    if (!userId) {
+      return res.status(401).json({ message: 'No user logged in.' });
+    }
+
+    const companies = await CompanyList.find({ user: userId }); // Fetch companies linked to the user
     res.status(200).json(companies);
   } catch (error) {
     console.error(error);
