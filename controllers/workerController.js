@@ -123,12 +123,7 @@ export const getWorkers = async (req, res) => {
     // Fetch workers based on the user's package type
     if (userPackage === 'Pro') {
       // Pro users can see their own workers and those linked to their company
-      workers = await Worker.find({
-        $or: [
-          { user: userId }, // Workers added by the pro user
-          { company: companyId } // Workers linked to the company
-        ]
-      });
+      workers = await Worker.find({ user: userId });
     } else if (userPackage === 'Basic') {
       // Basic users can only see their own workers
       workers = await Worker.find({ user: userId });
