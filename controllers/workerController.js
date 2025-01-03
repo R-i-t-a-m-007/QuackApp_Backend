@@ -99,6 +99,7 @@ export const addWorker = async (req, res) => {
 // Fetch all workers for the logged-in company or user
 // Fetch all workers for the logged-in company or user
 // Fetch all workers for the logged-in user or company
+// Fetch all workers for the logged-in user or company
 export const getWorkers = async (req, res) => {
   try {
     // Check if either a user or a company is logged in
@@ -109,13 +110,30 @@ export const getWorkers = async (req, res) => {
       return res.status(401).json({ message: 'No user or company logged in.' });
     }
 
-    // Fetch all workers linked to the logged-in user or company
-    const workers = await Worker.find({
-      $or: [
-        { user: userId }, // Fetch workers added by the user
-        { company: companyId } // Fetch workers linked to the company
-      ]
-    });
+    // Determine the user's package type
+    let userPackage = null;
+    if (userId) {
+      const user = await User.findById(userId);
+      userPackage = user.package; // Assuming the package is stored in the user object
+    }
+
+    // Fetch workers based on the user's package type
+    let workers;
+    if (userPackage === 'Pro') {
+      // Fetch all workers linked to the user or company for pro users
+      workers = await Worker.find({
+        $or: [
+          { user: userId }, // Fetch workers added by the user
+          { company: companyId } // Fetch workers linked to the company
+        ]
+      });
+    } else if (userPackage === 'Basic') {
+      // Fetch only workers added by the basic user
+      workers = await Worker.find({ user: userId });
+    } else {
+      // If the user package is not recognized, return an empty array or handle accordingly
+      workers = [];
+    }
 
     res.status(200).json(workers);
   } catch (error) {
