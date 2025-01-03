@@ -46,6 +46,7 @@ The QuackApp Team`,
 // Add a new worker
 // Add a new worker
 // Add a new worker
+// Add a new worker
 export const addWorker = async (req, res) => {
   const { name, email, phone, role, department, address, joiningDate, password } = req.body;
 
@@ -97,6 +98,7 @@ export const addWorker = async (req, res) => {
 // Fetch all workers for the logged-in company or user
 // Fetch all workers for the logged-in company or user
 // Fetch all workers for the logged-in company or user
+// Fetch all workers for the logged-in user or company
 export const getWorkers = async (req, res) => {
   try {
     // Check if either a user or a company is logged in
@@ -107,7 +109,7 @@ export const getWorkers = async (req, res) => {
       return res.status(401).json({ message: 'No user or company logged in.' });
     }
 
-    // Fetch all workers linked to the logged-in company or user
+    // Fetch all workers linked to the logged-in user or company
     const workers = await Worker.find({
       $or: [
         { user: userId }, // Fetch workers added by the user
