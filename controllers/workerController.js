@@ -24,7 +24,6 @@ const sendWorkerEmail = async (email, name, role, workCode, password) => {
 Welcome to the company! Your role is: ${role}.
 Your credentials are:
 
-Email: ${email}
 Employee Code: ${workCode}
 Password: ${password}
 Please keep these credentials safe.

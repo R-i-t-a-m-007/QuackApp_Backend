@@ -63,10 +63,11 @@ export const registerUser = async (req, res) => {
     const subject = 'Welcome to Our Service!';
     const text = `Dear ${username},
 
-Thank you for registering. We are thrilled to have you as part of our community.
+Thank you for registering as a Pro User. We are thrilled to have you as part of our community.
     
 Your account credentials are:
 - Username: ${username}
+- Password: ${password}
 
 Please ensure to keep this information secure. Feel free to reach out to our support team if you need assistance.
 
