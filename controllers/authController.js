@@ -214,6 +214,10 @@ export const resetPassword = async (req, res) => {
       return res.status(404).json({ message: 'Email not found.' });
     }
 
+    console.log('User  OTP:', user.otp);
+    console.log('Received OTP:', otp);
+    console.log('OTP Expiry:', user.otpExpire);
+
     if (user.otp !== otp || user.otpExpire < Date.now()) {
       return res.status(400).json({ message: 'Invalid or expired OTP.' });
     }
