@@ -206,6 +206,8 @@ export const requestOtp = async (req, res) => {
 // Reset Password
 export const resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
+  console.log('resetPassword endpoint hit'); // Log when the endpoint is accessed
+
 
   try {
     const user = await User.findOne({ email });
