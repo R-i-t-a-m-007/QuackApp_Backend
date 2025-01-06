@@ -208,19 +208,20 @@ export const resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
   console.log('resetPassword endpoint hit'); // Log when the endpoint is accessed
 
-
   try {
     const user = await User.findOne({ email });
 
     if (!user) {
+      console.log('User  not found for email:', email); // Log if user is not found
       return res.status(404).json({ message: 'Email not found.' });
     }
 
-    console.log('User  OTP:', user.otp);
-    console.log('Received OTP:', otp);
-    console.log('OTP Expiry:', user.otpExpire);
+    console.log('User  OTP from DB:', user.otp); // Log the OTP stored in the database
+    console.log('Received OTP:', otp); // Log the OTP received from the request
+    console.log('OTP Expiry:', user.otpExpire); // Log the OTP expiry time
 
     if (user.otp !== otp || user.otpExpire < Date.now()) {
+      console.log('OTP validation failed.'); // Log if OTP validation fails
       return res.status(400).json({ message: 'Invalid or expired OTP.' });
     }
 
