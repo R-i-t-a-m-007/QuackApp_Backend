@@ -63,7 +63,7 @@ export const registerUser = async (req, res) => {
     const subject = 'Welcome to Our Service!';
     const text = `Dear ${username},
 
-Thank you for registering as a Pro User. We are thrilled to have you as part of our community.
+Thank you for registering. We are thrilled to have you as part of our community.
     
 Your account credentials are:
 - Username: ${username}
@@ -275,5 +275,37 @@ export const updateUserPackage = async (req, res) => {
   } catch (error) {
     console.error('Error updating package:', error);
     res.status(500).json({ message: 'Failed to update package.' });
+  }
+};
+
+// Function to upload user image
+export const uploadUserImage = async (req, res) => {
+  const userId = req.session.user ? req.session.user.id : null;
+
+  try {
+    if (!userId) {
+      return res.status(401).json({ message: 'No user logged in.' });
+    }
+
+    // Check if an image was uploaded
+    if (!req.body.image) {
+      return res.status(400).json({ message: 'No image provided.' });
+    }
+
+    // Update user with the image (base64 string)
+    const updatedUser  = await User.findByIdAndUpdate(
+      userId,
+      { image: req.body.image }, // Store the base64 image
+      { new: true }
+    );
+
+    if (!updatedUser ) {
+      return res.status(404).json({ message: 'User  not found.' });
+    }
+
+    res.status(200).json({ message: 'Image uploaded successfully.', user: updatedUser  });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({ message: 'Server error.' });
   }
 };

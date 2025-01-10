@@ -11,6 +11,7 @@ const companyListSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Reference to the user who added this company
   password: { type: String, required: true }, // Add password field
   comp_code: { type: String, required: true }, // Add company code field
+  image: { type: String, default: null }, // Field to store the company image
 });
 
 export default mongoose.model('CompanyList', companyListSchema);

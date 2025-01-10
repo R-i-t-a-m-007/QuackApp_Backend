@@ -17,6 +17,7 @@ const workerSchema = new mongoose.Schema({
     date: { type: Date, required: true },
     shift: { type: String, enum: ['Morning', 'Afternoon', 'Evening'], required: true }
   }],
+  image: { type: String, default: null }, // Field to store the image as a base64 string
 });
 
 export default mongoose.model('Worker', workerSchema);

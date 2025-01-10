@@ -326,3 +326,34 @@ export const getLoggedInWorker = async (req, res) => {
   }
 };
 
+export const uploadWorkerImage = async (req, res) => {
+  const { workerId } = req.params;
+
+  try {
+    // Ensure the worker is logged in
+    if (!req.session.worker || req.session.worker._id !== workerId) {
+      return res.status(401).json({ message: 'Unauthorized access.' });
+    }
+
+    // Check if an image was uploaded
+    if (!req.body.image) {
+      return res.status(400).json({ message: 'No image provided.' });
+    }
+
+    // Update worker with the image (base64 string)
+    const updatedWorker = await Worker.findByIdAndUpdate(
+      workerId,
+      { image: req.body.image }, // Store the base64 image
+      { new: true }
+    );
+
+    if (!updatedWorker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    res.status(200).json({ message: 'Image uploaded successfully.', worker: updatedWorker });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};

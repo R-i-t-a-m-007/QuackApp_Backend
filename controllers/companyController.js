@@ -218,3 +218,36 @@ export const getLoggedInCompany = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
+// Function to upload company image
+export const uploadCompanyImage = async (req, res) => {
+  const { companyId } = req.params;
+
+  try {
+    // Ensure the company is logged in
+    if (!req.session.company || req.session.company._id !== companyId) {
+      return res.status(401).json({ message: 'Unauthorized access.' });
+    }
+
+    // Check if an image was uploaded
+    if (!req.body.image) {
+      return res.status(400).json({ message: 'No image provided.' });
+    }
+
+    // Update company with the image (base64 string)
+    const updatedCompany = await CompanyList.findByIdAndUpdate(
+      companyId,
+      { image: req.body.image }, // Store the base64 image
+      { new: true }
+    );
+
+    if (!updatedCompany) {
+      return res.status(404).json({ message: 'Company not found.' });
+    }
+
+    res.status(200).json({ message: 'Image uploaded successfully.', company: updatedCompany });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
