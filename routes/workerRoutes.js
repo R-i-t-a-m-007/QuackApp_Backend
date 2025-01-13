@@ -1,5 +1,5 @@
 import express from 'express';
-import { addWorker, getWorkers, updateWorker, deleteWorker, loginWorker, logoutWorker, updateWorkerAvailability, getLoggedInWorker, uploadWorkerImage } from '../controllers/workerController.js';
+import { addWorker, getWorkers, updateWorker, deleteWorker, loginWorker, logoutWorker, updateWorkerAvailability, getLoggedInWorker, uploadWorkerImage, getWorkersByShiftAndDate } from '../controllers/workerController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
 const router = express.Router();
@@ -14,5 +14,7 @@ router.get('/me', getLoggedInWorker);
 router.put('/:workerId/availability', sessionMiddleware, updateWorkerAvailability);
 router.post('/logout', logoutWorker);
 router.post('/:workerId/upload-image', sessionMiddleware, uploadWorkerImage); // New route for image upload
+router.get('/shift-date', sessionMiddleware, getWorkersByShiftAndDate);
+
 
 export default router;

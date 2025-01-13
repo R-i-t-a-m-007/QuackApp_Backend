@@ -357,3 +357,40 @@ export const uploadWorkerImage = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
+// Fetch workers based on shift and date
+export const getWorkersByShiftAndDate = async (req, res) => {
+  const { date, shift } = req.query; // Expecting date and shift as query parameters
+
+  try {
+    // Check if either a user or a company is logged in
+    const userId = req.session.user ? req.session.user.id : null;
+    const companyId = req.session.company ? req.session.company._id : null;
+
+    if (!userId && !companyId) {
+      return res.status(401).json({ message: 'No user or company logged in.' });
+    }
+
+    // Convert date string to Date object
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid date format.' });
+    }
+
+    // Fetch workers who are available on the specified date and shift
+    const workers = await Worker.find({
+      availability: {
+        $elemMatch: {
+          date: parsedDate,
+          shift: shift,
+        },
+      },
+      $or: [{ user: userId }, { company: companyId }], // Ensure the worker belongs to the user or company
+    });
+
+    res.status(200).json(workers);
+  } catch (error) {
+    console.error('Error fetching workers by shift and date:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
