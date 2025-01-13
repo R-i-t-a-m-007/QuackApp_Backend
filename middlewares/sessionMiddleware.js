@@ -7,13 +7,13 @@ export const sessionMiddleware = (req, res, next) => {
   }
 
   // Optionally, you can log the type of session that is active
-  if (user) {
-    console.log('User  session active:', user);
-  } else if (company) {
-    console.log('Company session active:', company);
-  } else if (worker) {
-    console.log('Worker session active:', worker);
-  }
+  // if (user) {
+  //   console.log('User  session active:', user);
+  // } else if (company) {
+  //   console.log('Company session active:', company);
+  // } else if (worker) {
+  //   console.log('Worker session active:', worker);
+  // }
 
   // Proceed to the next middleware or route handler
   next();
