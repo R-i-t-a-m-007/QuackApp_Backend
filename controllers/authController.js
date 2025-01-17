@@ -280,11 +280,12 @@ export const updateUserPackage = async (req, res) => {
 
 // Function to upload user image
 export const uploadUserImage = async (req, res) => {
-  const userId = req.session.user ? req.session.user.id : null;
+  const { userId } = req.params; // Get userId from request parameters
 
   try {
-    if (!userId) {
-      return res.status(401).json({ message: 'No user logged in.' });
+    // Ensure the user is logged in
+    if (!req.session.user || req.session.user.id !== userId) {
+      return res.status(401).json({ message: 'Unauthorized access.' });
     }
 
     // Check if an image was uploaded

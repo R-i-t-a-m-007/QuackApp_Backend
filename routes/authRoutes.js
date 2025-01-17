@@ -14,8 +14,7 @@ router.post('/reset-password', resetPassword);
 router.post('/store-package', storeSelectedPackage); // Add this line
 router.get('/session', getSessionData);
 router.post('/updatepackage', updateUserPackage); // New route for updating package
-router.post('/upload-image', uploadUserImage); // New route for uploading user image
-
+router.post('/:userId/upload-image', uploadUserImage); // New route for uploading user image
 
 
 export default router;
