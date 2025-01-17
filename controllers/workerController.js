@@ -2,11 +2,10 @@ import Worker from '../models/Worker.js';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
-
-const generateEmpCode = () => `EMP${Math.floor(1000 + Math.random() * 9000)}`;
+import CompanyList from '../models/CompanyList.js'; // Assuming you have a CompanyList model
 
 // Function to send email to the worker
-const sendWorkerEmail = async (email, name, role, workCode, password) => {
+const sendWorkerEmail = async (email, name, role, compCode, password) => {
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
@@ -24,7 +23,7 @@ const sendWorkerEmail = async (email, name, role, workCode, password) => {
 Welcome to the company! Your role is: ${role}.
 Your credentials are:
 
-Employee Code: ${workCode}
+Company Code: ${compCode}
 Password: ${password}
 Please keep these credentials safe.
 
@@ -43,19 +42,15 @@ The QuackApp Team`,
 };
 
 // Add a new worker
-// Add a new worker
-// Add a new worker
-// Add a new worker
 export const addWorker = async (req, res) => {
   const { name, email, phone, role, department, address, joiningDate, password } = req.body;
 
   try {
-    // Check if either a user or a company is logged in
-    const userId = req.session.user ? req.session.user.id : null;
+    // Check if a company is logged in
     const companyId = req.session.company ? req.session.company._id : null;
 
-    if (!userId && !companyId) {
-      return res.status(401).json({ message: 'No user or company logged in.' });
+    if (!companyId) {
+      return res.status(401).json({ message: 'No company logged in.' });
     }
 
     // Check if the worker already exists
@@ -67,6 +62,10 @@ export const addWorker = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Fetch the company code from the logged-in company
+    const company = await CompanyList.findById(companyId); // Assuming you have a CompanyList model
+    const compCode = company.comp_code; // Assuming the company has a comp_code field
+
     // Create and save the new worker
     const newWorker = new Worker({
       name,
@@ -76,16 +75,15 @@ export const addWorker = async (req, res) => {
       department,
       address,
       joiningDate,
-      company: companyId, // Link to the company if applicable
-      user: userId, // Link to the user who added the worker
-      work_code: generateEmpCode(),
+      company: companyId, // Link to the company
+      comp_code: compCode, // Use the company code instead of work_code
       password: hashedPassword,
     });
 
     await newWorker.save();
 
     // Send email to the worker
-    await sendWorkerEmail(email, name, role, newWorker.work_code, password);
+    await sendWorkerEmail(email, name, role, compCode, password);
 
     res.status(201).json({ message: 'Worker added successfully!', worker: newWorker });
   } catch (error) {
@@ -94,45 +92,18 @@ export const addWorker = async (req, res) => {
   }
 };
 
-// Fetch all workers for the logged-in company or user
-// Fetch all workers for the logged-in company or user
-// Fetch all workers for the logged-in company or user
-// Fetch all workers for the logged-in user or company
-// Fetch all workers for the logged-in user or company
-// Fetch all workers for the logged-in user or company
+// Fetch all workers for the logged-in company
 export const getWorkers = async (req, res) => {
   try {
-    // Check if either a user or a company is logged in
-    const userId = req.session.user ? req.session.user.id : null;
+    // Check if a company is logged in
     const companyId = req.session.company ? req.session.company._id : null;
 
-    if (!userId && !companyId) {
-      return res.status(401).json({ message: 'No user or company logged in.' });
+    if (!companyId) {
+      return res.status(401).json({ message: 'No company logged in.' });
     }
 
-    // Determine the user's package type
-    let userPackage = null;
-    if (userId) {
-      const user = await User.findById(userId);
-      userPackage = user.package; // Assuming the package is stored in the user object
-    }
-
-    let workers;
-
-    // Fetch workers based on the user's package type
-    if (userPackage === 'Pro') {
-      // Pro users can see their own workers and those linked to their company
-      workers = await Worker.find({ user: userId });
-    } else if (userPackage === 'Basic') {
-      // Basic users can only see their own workers
-      workers = await Worker.find({ user: userId });
-    } else if (companyId) {
-      // If the user is not recognized and is part of a company, fetch workers linked to the company
-      workers = await Worker.find({ company: companyId });
-    } else {
-      // If the user package is not recognized, return an empty array or handle accordingly
-      workers = [];
-    }
+    // Fetch workers linked to the company
+    const workers = await Worker.find({ company: companyId });
 
     res.status(200).json(workers);
   } catch (error) {
@@ -142,28 +113,26 @@ export const getWorkers = async (req, res) => {
 };
 
 // Update a worker's details
-// Update a worker's details
 export const updateWorker = async (req, res) => {
   const { workerId } = req.params;
   const { name, email, phone, role, department, address, joiningDate } = req.body;
 
   try {
-    // Check if either a user or a company is logged in
-    const userId = req.session.user ? req.session.user.id : null;
+    // Check if a company is logged in
     const companyId = req.session.company ? req.session.company._id : null;
 
-    if (!userId && !companyId) {
-      return res.status(401).json({ message: 'No user or company logged in.' });
+    if (!companyId) {
+      return res.status(401).json({ message: 'No company logged in.' });
     }
 
-    // Update the worker linked to the logged-in company or user
+    // Update the worker linked to the logged-in company
     const updatedWorker = await Worker.findOneAndUpdate(
-      { _id: workerId, $or: [{ user: userId }, { company: companyId }] }, // Ensure the worker belongs to the user or company
+      { _id: workerId, company: companyId }, // Ensure the worker belongs to the company
       { name, email, phone, role, department, address, joiningDate },
       { new: true }
     );
 
-    if (!updatedWorker) {
+ if (!updatedWorker) {
       return res.status(404).json({ message: 'Worker not found or not authorized to update.' });
     }
 
@@ -175,21 +144,19 @@ export const updateWorker = async (req, res) => {
 };
 
 // Delete a worker
-// Delete a worker
 export const deleteWorker = async (req, res) => {
   const { workerId } = req.params;
 
   try {
-    // Check if either a user or a company is logged in
-    const userId = req.session.user ? req.session.user.id : null;
+    // Check if a company is logged in
     const companyId = req.session.company ? req.session.company._id : null;
 
-    if (!userId && !companyId) {
-      return res.status(401).json({ message: 'No user or company logged in.' });
+    if (!companyId) {
+      return res.status(401).json({ message: 'No company logged in.' });
     }
 
-    // Delete the worker linked to the logged-in company or user
-    const deletedWorker = await Worker.findOneAndDelete({ _id: workerId, $or: [{ user: userId }, { company: companyId }] });
+    // Delete the worker linked to the logged-in company
+    const deletedWorker = await Worker.findOneAndDelete({ _id: workerId, company: companyId });
 
     if (!deletedWorker) {
       return res.status(404).json({ message: 'Worker not found or not authorized to delete.' });
@@ -207,15 +174,14 @@ export const getWorkerById = async (req, res) => {
   const { workerId } = req.params;
 
   try {
-    // Check if either a user or a company is logged in
-    const userId = req.session.user ? req.session.user.id : null;
+    // Check if a company is logged in
     const companyId = req.session.company ? req.session.company._id : null;
 
-    if (!userId && !companyId) {
-      return res.status(401).json({ message: 'No user or company logged in.' });
+    if (!companyId) {
+      return res.status(401).json({ message: 'No company logged in.' });
     }
 
-    // Fetch the worker linked to the logged-in company or user
+    // Fetch the worker linked to the logged-in company
     const worker = await Worker.findOne({ _id: workerId, company: companyId });
 
     if (!worker) {
@@ -234,14 +200,14 @@ export const loginWorker = async (req, res) => {
   const { workerCode, password } = req.body;
 
   try {
-    const worker = await Worker.findOne({ work_code: workerCode });
+    const worker = await Worker.findOne({ comp_code: workerCode }); // Changed to comp_code
 
     if (!worker || !(await bcrypt.compare(password, worker.password))) {
-      return res.status(401).json({ message: 'Invalid work code or password.' });
+      return res.status(401).json({ message: 'Invalid company code or password.' });
     }
 
     // Create a session for the logged-in worker
-    req.session.worker = { _id: worker._id, work_code: worker.work_code };
+    req.session.worker = { _id: worker._id, comp_code: worker.comp_code };
 
     console.log('Worker logged in:', req.session.worker); // Debugging log
 
@@ -277,7 +243,7 @@ export const updateWorkerAvailability = async (req, res) => {
     res.status(200).json({ message: 'Worker availability updated successfully.', worker: updatedWorker });
   } catch (error) {
     console.error('Error updating worker availability:', error);
- res.status(500).json({ message: 'Server error.' });
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
@@ -291,7 +257,7 @@ export const logoutWorker = async (req, res) => {
     req.session.destroy((err) => {
       if (err) {
         console.error('Error during logout:', err);
-        return res.status(500).json({ message: 'Logout failed.' });
+        return res.status(500).json ({ message: 'Logout failed.' });
       }
 
       res.clearCookie('connect.sid'); // Clear session cookie
@@ -363,12 +329,11 @@ export const getWorkersByShiftAndDate = async (req, res) => {
   const { date, shift } = req.query; // Expecting date and shift as query parameters
 
   try {
-    // Check if either a user or a company is logged in
-    const userId = req.session.user ? req.session.user.id : null;
+    // Check if a company is logged in
     const companyId = req.session.company ? req.session.company._id : null;
 
-    if (!userId && !companyId) {
-      return res.status(401).json({ message: 'No user or company logged in.' });
+    if (!companyId) {
+      return res.status(401).json({ message: 'No company logged in.' });
     }
 
     // Convert date string to Date object
@@ -385,7 +350,7 @@ export const getWorkersByShiftAndDate = async (req, res) => {
           shift: shift,
         },
       },
-      $or: [{ user: userId }, { company: companyId }], // Ensure the worker belongs to the user or company
+      company: companyId, // Ensure the worker belongs to the company
     });
 
     res.status(200).json(workers);
