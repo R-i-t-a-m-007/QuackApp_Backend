@@ -67,6 +67,7 @@ export const companyLogin = async (req, res) => {
 
 // Function to add a new company
 // Function to add a new company
+// Function to add a new company
 export const addCompany = async (req, res) => {
   const { name, email, phone, address, country, city, postcode, password } = req.body;
 
@@ -84,9 +85,16 @@ export const addCompany = async (req, res) => {
       return res.status(404).json({ message: 'User  not found.' });
     }
 
-    // Check if the user has a pro package
-    if (user.package !== 'Pro') {
-      return res.status(403).json({ message: 'Only users with a Pro package can create a company.' });
+    // Check if the user has a Pro package
+    if (user.package === 'Basic') {
+      // Check if the user already has a company
+      const existingCompany = await CompanyList.findOne({ user: userId });
+      if (existingCompany) {
+        return res.status(403).json({ message: 'Basic users can only create one company.' });
+      }
+    } else if (user.package === 'Pro') {
+      // Pro users can create unlimited companies
+      // No additional checks needed for Pro users
     }
 
     // Check if the company already exists by email
@@ -131,18 +139,19 @@ export const addCompany = async (req, res) => {
 // Fetch the list of companies associated with the logged-in user
 // Fetch the list of companies associated with the logged-in user
 export const getCompanies = async (req, res) => {
-  const userId = req.session.user ? req.session.user.id : null; // Get the user ID from the session
-
   try {
+    const userId = req.session.user ? req.session.user.id : null;
+
     if (!userId) {
       return res.status(401).json({ message: 'No user logged in.' });
     }
 
-    const companies = await CompanyList.find({ user: userId }); // Fetch companies linked to the user
-    res.status(200).json(companies);
+    // Fetch companies associated with the user
+    const companies = await CompanyList.find({ user: userId });
+    res.status(200).json({ companies });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Failed to fetch companies.' });
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
@@ -172,15 +181,23 @@ export const updateCompany = async (req, res) => {
 
 // Delete a company
 export const deleteCompany = async (req, res) => {
-  const companyId = req.params.id;
-  const userId = req.session.user.id; // Get the user ID from the session
+  const { companyId } = req.params;
 
   try {
-    const company = await CompanyList.findOneAndDelete({ _id: companyId, user: userId });
-    if (!company) {
-      return res.status(404).json({ message: 'Company not found or you do not have permission to delete it.' });
+    const userId = req.session.user ? req.session.user.id : null;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'No user logged in.' });
     }
 
+    // Check if the company belongs to the user
+    const company = await CompanyList.findOne({ _id: companyId, user: userId });
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found or does not belong to the user.' });
+    }
+
+    // Delete the company
+    await CompanyList.deleteOne({ _id: companyId });
     res.status(200).json({ message: 'Company deleted successfully.' });
   } catch (error) {
     console.error(error);
