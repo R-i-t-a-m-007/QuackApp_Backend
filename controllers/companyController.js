@@ -148,7 +148,7 @@ export const getCompanies = async (req, res) => {
 
     // Fetch companies associated with the user
     const companies = await CompanyList.find({ user: userId });
-    res.status(200).json({ companies });
+    res.status(200).json(companies);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error.' });
