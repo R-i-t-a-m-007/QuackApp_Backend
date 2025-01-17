@@ -60,7 +60,7 @@ export const registerUser = async (req, res) => {
     req.session.user = { id: newUser._id, username: newUser.username };
 
     // Send a welcome email
-    const subject = 'Welcome to Our Service!';
+    const subject = 'Successful Registration';
     const text = `Dear ${username},
 
 Thank you for registering. We are thrilled to have you as part of our community.

@@ -19,7 +19,7 @@ const sendEmail = async (email, compCode, password) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: 'Successful Registration',
+    subject: 'Welcome to Our Service!',
     text: `Your company has been successfully registered. The credentials are:
 
 Company Code: ${compCode}
