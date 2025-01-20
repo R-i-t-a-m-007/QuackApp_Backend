@@ -4,6 +4,8 @@ import Job from '../models/Job.js';
 export const createJob = async (req, res) => {
   const { title, description, location, date, shift, workersRequired } = req.body;
   const companyId = req.session.company._id; // Get the logged-in company ID from the session
+  console.log('Company ID:', companyId); // Log the company ID
+
 
   try {
     const newJob = new Job({
