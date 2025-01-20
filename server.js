@@ -9,6 +9,8 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import companyRoutes from './routes/companyRoutes.js';
 import workerRoutes from './routes/workerRoutes.js'
 import stripeRoutes from './routes/stripeRoutes.js'
+import jobRoutes from './routes/jobRoutes.js'; // Import job routes
+
 
 dotenv.config();
 
@@ -52,6 +54,8 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/workers', workerRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/jobs', jobRoutes); // Add job routes
+
 
 
 // Start server
