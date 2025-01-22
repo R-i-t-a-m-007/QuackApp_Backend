@@ -18,7 +18,7 @@ import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 const router = express.Router();
 
 // Ensure that only individual users can add and see workers
-router.post('/add', sessionMiddleware, addWorker); // Add a new worker
+router.post('/add', addWorker); // Add a new worker
 router.get('/pending', sessionMiddleware, getPendingWorkers); // Get workers with approved: false
 router.get('/approved', sessionMiddleware, getApprovedWorkers); // Get workers with approved: true
 router.put('/approve/:workerId', sessionMiddleware, approveWorker); // Approve a worker
