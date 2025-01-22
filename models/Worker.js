@@ -10,7 +10,6 @@ const workerSchema = new mongoose.Schema({
   joiningDate: { type: Date, required: true },
   comp_code: { type: String, required: true }, // Company code
   password: { type: String, required: true },
-  package: { type: String, enum: ['Basic', 'Pro'] }, // Store the user's package type
   availability: [{
     date: { type: Date, required: true },
     shift: { type: String, enum: ['Morning', 'Afternoon', 'Evening'], required: true }
