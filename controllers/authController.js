@@ -115,7 +115,7 @@ export const loginUser  = async (req, res) => {
     req.session.user = { id: user._id, username: user.username,userCode: user.userCode };
 
     // Generate JWT
-    const payload = { id: user._id, username: user.username };
+    const payload = { id: user._id, username: user.username,userCode: user.userCode };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({ token, message: 'Login successful!', user: req.session.user });
