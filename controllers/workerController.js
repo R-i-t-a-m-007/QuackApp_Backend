@@ -249,6 +249,9 @@ export const loginWorker = async (req, res) => {
     // Find the worker by userCode
     const worker = await Worker.findOne({ userCode });
 
+    // Log the worker object
+    console.log('Worker found:', worker);
+
     // Check if the worker exists and if they are approved
     if (!worker) {
       return res.status(401).json({ message: 'Invalid user code or password.' });
