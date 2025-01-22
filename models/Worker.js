@@ -8,7 +8,6 @@ const workerSchema = new mongoose.Schema({
   department: { type: String, required: true },
   address: { type: String, required: true },
   joiningDate: { type: Date, required: true },
-  comp_code: { type: String, required: true }, // Company code
   password: { type: String, required: true },
   availability: [{
     date: { type: Date, required: true },
