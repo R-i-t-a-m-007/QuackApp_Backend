@@ -112,7 +112,7 @@ export const loginUser  = async (req, res) => {
     }
 
     // Set session
-    req.session.user = { id: user._id, username: user.username };
+    req.session.user = { id: user._id, username: user.username,userCode: user.userCode };
 
     // Generate JWT
     const payload = { id: user._id, username: user.username };
