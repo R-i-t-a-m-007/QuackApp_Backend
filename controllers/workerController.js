@@ -167,11 +167,13 @@ export const declineWorker = async (req, res) => {
 // Get Workers with approved: false
 export const getPendingWorkers = async (req, res) => {
   const { userCode } = req.session.user; // Get the logged-in user's userCode
+  console.log('User  Code:', userCode); // Log the user code
 
   try {
     // Fetch all workers with approved: false and matching userCode
     const pendingWorkers = await Worker.find({ approved: false, userCode });
 
+    console.log('Pending Workers:', pendingWorkers); // Log the fetched workers
     res.status(200).json(pendingWorkers);
   } catch (error) {
     console.error('Error fetching pending workers:', error);
