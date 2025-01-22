@@ -16,6 +16,7 @@ const UserSchema = new mongoose.Schema({
   otp: { type: String }, // Add OTP field
   otpExpire: { type: Date }, // Add OTP expiration field
   image: { type: String, default: null }, // Field to store the user's profile image
+  userCode: { type: String, required: true }, // New field for user code
 });
 
 export default mongoose.model('User ', UserSchema);

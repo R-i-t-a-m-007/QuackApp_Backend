@@ -2,7 +2,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import nodemailer from 'nodemailer';
-import crypto from 'crypto';
 
 // Function to send emails
 const sendEmail = async (to, subject, text) => {
@@ -24,8 +23,14 @@ const sendEmail = async (to, subject, text) => {
   return transporter.sendMail(mailOptions);
 };
 
+// Function to generate a random user code
+const generateUserCode = () => {
+  const randomNum = Math.floor(1000 + Math.random() * 9000); // Generate a random number between 1000 and 9999
+  return `USER${randomNum}`; // Format the user code
+};
+
 // Register User
-export const registerUser = async (req, res) => {
+export const registerUser  = async (req, res) => {
   const { username, email, phone, address, postcode, password } = req.body;
 
   try {
@@ -44,20 +49,24 @@ export const registerUser = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generate user code
+    const userCode = generateUserCode();
+
     // Create new user
-    const newUser = new User({
+    const newUser  = new User({
       username,
       email,
       phone,
       address,
       postcode,
       password: hashedPassword,
+      userCode, // Include userCode
     });
 
-    await newUser.save();
+    await newUser .save();
 
     // Set session for the newly registered user
-    req.session.user = { id: newUser._id, username: newUser.username };
+    req.session.user = { id: newUser ._id, username: newUser .username };
 
     // Send a welcome email
     const subject = 'Successful Registration';
@@ -68,6 +77,7 @@ Thank you for registering. We are thrilled to have you as part of our community.
 Your account credentials are:
 - Username: ${username}
 - Password: ${password}
+- User Code: ${userCode}
 
 Please ensure to keep this information secure. Feel free to reach out to our support team if you need assistance.
 
@@ -84,8 +94,7 @@ The QuackApp Team`;
 };
 
 // Login User
-// Login User
-export const loginUser = async (req, res) => {
+export const loginUser  = async (req, res) => {
   const { username, password } = req.body;
 
   try {
@@ -116,9 +125,8 @@ export const loginUser = async (req, res) => {
   }
 };
 
-
 // Logout User
-export const logoutUser = (req, res) => {
+export const logoutUser  = (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       console.error('Error destroying session:', err);
@@ -130,7 +138,7 @@ export const logoutUser = (req, res) => {
 };
 
 // Get Logged In User
-export const getLoggedInUser = async (req, res) => {
+export const getLoggedInUser  = async (req, res) => {
   try {
     if (!req.session.user || !req.session.user.id) {
       return res.status(401).json({ message: 'No user logged in' });
@@ -139,7 +147,7 @@ export const getLoggedInUser = async (req, res) => {
     const user = await User.findById(req.session.user.id).select('-password'); // Exclude password
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'User  not found' });
     }
 
     res.status(200).json({ user });
@@ -150,7 +158,7 @@ export const getLoggedInUser = async (req, res) => {
 };
 
 // Store Selected Package
-export const storeSelectedPackage = async (req, res) => {
+export const storeSelectedPackage  = async (req, res) => {
   const { packageName } = req.body;
 
   try {
@@ -161,7 +169,7 @@ export const storeSelectedPackage = async (req, res) => {
     const user = await User.findById(req.session.user.id);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'User  not found' });
     }
 
     user.package = packageName;
@@ -175,7 +183,7 @@ export const storeSelectedPackage = async (req, res) => {
 };
 
 // Request OTP for Password Reset
-export const requestOtp = async (req, res) => {
+export const requestOtp  = async (req, res) => {
   const { email } = req.body;
 
   try {
@@ -204,7 +212,7 @@ export const requestOtp = async (req, res) => {
 };
 
 // Reset Password
-export const resetPassword = async (req, res) => {
+export const resetPassword  = async (req, res) => {
   const { email, otp, newPassword } = req.body;
   console.log('resetPassword endpoint hit'); // Log when the endpoint is accessed
 
@@ -237,7 +245,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-export const getSessionData = (req, res) => {
+export const getSessionData  = (req, res) => {
   if (req.session.user) {
     return res.status(200).json({ user: req.session.user });
   } else {
@@ -246,7 +254,7 @@ export const getSessionData = (req, res) => {
 };
 
 // Update User Package
-export const updateUserPackage = async (req, res) => {
+export const updateUserPackage  = async (req, res) => {
   const { newPackage } = req.body; // Expecting the new package name from the request body
 
   try {
