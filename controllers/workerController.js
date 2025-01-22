@@ -246,9 +246,22 @@ export const loginWorker = async (req, res) => {
   const { userCode, password } = req.body;
 
   try {
-    const worker = await Worker.findOne({ userCode }); // Changed to userCode
+    // Find the worker by userCode
+    const worker = await Worker.findOne({ userCode });
 
-    if (!worker || !(await bcrypt.compare(password, worker.password))) {
+    // Check if the worker exists and if they are approved
+    if (!worker) {
+      return res.status(401).json({ message: 'Invalid user code or password.' });
+    }
+
+    // Check if the worker is approved
+    if (!worker.approved) {
+      return res.status(403).json({ message: 'Your account is not approved yet. Please contact support.' });
+    }
+
+    // Compare the provided password with the stored hashed password
+    const isMatch = await bcrypt.compare(password, worker.password);
+    if (!isMatch) {
       return res.status(401).json({ message: 'Invalid user code or password.' });
     }
 
