@@ -4,7 +4,7 @@ import Worker from '../models/Worker.js'; // Import the Worker model
 
 export const createJob = async (req, res) => {
   const { title, description, location, date, shift, workersRequired } = req.body;
-  const userCode = req.session.userCode; // Assuming userCode is stored in the session
+  const userCode = req.session.user.userCode; // Assuming userCode is stored in the session
 
   try {
     const newJob = new Job({
