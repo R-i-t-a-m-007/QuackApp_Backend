@@ -8,7 +8,7 @@ const jobSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   shift: { type: String, required: true },
   workersRequired: { type: Number, required: true },
-  workers: { type: [mongoose.Schema.Types.ObjectId], ref: 'Worker', default: null }, // Array of workers
+  workers: { type: [mongoose.Schema.Types.ObjectId], ref: 'Worker', default: [] }, // Array of workers
   jobStatus: { type: Boolean, default: false }, // Job status
   userCode: { type: String, required: true }, // User code of the creator
   createdAt: { type: Date, default: Date.now },
