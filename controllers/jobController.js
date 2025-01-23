@@ -134,3 +134,17 @@ export const updateJobStatus = async (req, res) => {
     res.status(500).json({ message: 'Server error while updating job status.' });
   }
 };
+
+// Fetch jobs for the logged-in worker where the worker ID is in the workers array
+export const getMyTasks = async (req, res) => {
+  const workerId = req.session.worker._id; // Get the logged-in worker ID from the session
+
+  try {
+    // Fetch jobs where the worker ID is in the workers array
+    const jobs = await Job.find({ workers: workerId }); // Find jobs where the worker ID is included in the workers array
+    res.status(200).json(jobs);
+  } catch (error) {
+    console.error('Error fetching my tasks:', error);
+    res.status(500).json({ message: 'Server error while fetching my tasks.' });
+  }
+};
