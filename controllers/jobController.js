@@ -68,6 +68,7 @@ export const getCompletedJobs = async (req, res) => {
 };
 
 // Accept a job
+// controllers/jobController.js
 export const acceptJob = async (req, res) => {
   const { jobId } = req.params; // Get the job ID from the request parameters
   const workerId = req.session.worker._id; // Get the logged-in worker ID from the session
@@ -78,6 +79,11 @@ export const acceptJob = async (req, res) => {
 
     if (!job) {
       return res.status(404).json({ message: 'Job not found.' });
+    }
+
+    // Ensure workers is an array
+    if (!Array.isArray(job.workers)) {
+      job.workers = []; // Initialize as an empty array if it's null
     }
 
     // Check if the worker is already in the workers array
