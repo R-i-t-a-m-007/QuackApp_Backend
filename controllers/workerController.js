@@ -250,7 +250,6 @@ export const loginWorker = async (req, res) => {
     const worker = await Worker.findOne({ userCode });
 
     // Log the worker object
-    console.log('Worker found:', worker);
 
     // Check if the worker exists and if they are approved
     if (!worker) {
@@ -270,8 +269,6 @@ export const loginWorker = async (req, res) => {
 
     // Create a session for the logged-in worker
     req.session.worker = { _id: worker._id, userCode: worker.userCode };
-
-    console.log('Worker logged in:', req.session.worker); // Debugging log
 
     res.status(200).json({ message: 'Login successful.', worker });
   } catch (error) {
