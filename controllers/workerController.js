@@ -2,7 +2,7 @@ import Worker from '../models/Worker.js';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
 
-// Function to send email to the worker
+// Function to send email to the worker with credentials
 const sendWorkerEmail = async (email, name, role, userCode, password) => {
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
@@ -23,7 +23,10 @@ Your credentials are:
 
 User  Code: ${userCode}
 Password: ${password}
-Please keep these credentials safe.
+
+Please keep these credentials safe. 
+
+Please wait for your approval, and we will let you know once your account is active.
 
 We are excited to have you on board.
 
@@ -39,8 +42,8 @@ The QuackApp Team`,
   }
 };
 
-// Function to send registration acknowledgment email
-const sendRegistrationAcknowledgmentEmail = async (email, name) => {
+// Function to send registration acknowledgment email without credentials
+const sendApprovalEmail = async (email, name) => {
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
@@ -52,11 +55,12 @@ const sendRegistrationAcknowledgmentEmail = async (email, name) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: 'Thank You for Registering',
-    text: `Dear ${name},
+    subject: 'Your Worker Registration has been Approved',
+    text: `Hello ${name},
 
-Thank you for registering with our company. We appreciate your interest in joining our team. 
-You will be notified via email regarding your approval status.
+Congratulations! Your registration has been approved! You can now log in using your credentials.
+
+Please follow the previous registration email for your User Code and Password.
 
 Best regards,
 The QuackApp Team`,
@@ -64,9 +68,9 @@ The QuackApp Team`,
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Registration acknowledgment email sent to:', email);
+    console.log('Approval email sent to worker:', email);
   } catch (error) {
-    console.error('Error sending registration acknowledgment email:', error);
+    console.error('Error sending approval email to worker:', error);
   }
 };
 
@@ -100,8 +104,8 @@ export const addWorker = async (req, res) => {
 
     await newWorker.save();
 
-    // Send registration acknowledgment email to the worker
-    await sendRegistrationAcknowledgmentEmail(email, name);
+    // Send registration acknowledgment email to the worker with credentials
+    await sendWorkerEmail(email, name, role, userCode, password);
 
     res.status(201).json({ message: 'Worker registration successful. Awaiting approval.' });
   } catch (error) {
@@ -123,20 +127,8 @@ export const approveWorker = async (req, res) => {
     worker.approved = true; // Set approved to true
     await worker.save();
 
-    // Send an email to the worker notifying them of approval
-    const subject = 'Your Worker Registration has been Approved';
-    const text = `Hello ${worker.name},
-
-Congratulations! Your registration has been approved! You can now log in using your credentials.
-
-Your credentials are:
-- User Code: ${worker.userCode}
-- Password: [Your Password]
-
-Best regards,
-The QuackApp Team`;
-
-    await sendWorkerEmail(worker.email, worker.name, worker.role, worker.userCode, worker.password);
+    // Send an email to the worker notifying them of approval without credentials
+    await sendApprovalEmail(worker.email, worker.name);
 
     res.status(200).json({ message: 'Worker approved successfully.' });
   } catch (error) {
@@ -144,6 +136,7 @@ The QuackApp Team`;
     res.status(500).json({ message: 'Server error while approving worker.' });
   }
 };
+
 
 // Decline Worker
 export const declineWorker = async (req, res) => {
