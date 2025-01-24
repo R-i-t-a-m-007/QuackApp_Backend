@@ -253,6 +253,9 @@ export const loginWorker = async (req, res) => {
       return res.status(403).json({ message: 'Your account is not approved yet. Please contact support.' });
     }
 
+    // Log the password being compared
+    console.log('Password being sent:', password); // Log the password
+
     // Compare the provided password with the stored hashed password
     const isMatch = await bcrypt.compare(password, worker.password);
     console.log('Password match:', isMatch); // Log the result of the password comparison
