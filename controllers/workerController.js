@@ -259,6 +259,7 @@ export const loginWorker = async (req, res) => {
 
     // Log the password being compared
     console.log('Password being sent:', password); // Log the password
+    console.log('Stored hashed password:', worker.password); // Log the stored hashed password
 
     // Compare the provided password with the stored hashed password
     const isMatch = await bcrypt.compare(password, worker.password);
