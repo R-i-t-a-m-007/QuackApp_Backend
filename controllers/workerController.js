@@ -240,16 +240,16 @@ export const getWorkerById = async (req, res) => {
 
 // Function to log in a worker
 export const loginWorker = async (req, res) => {
-  const { userCode, password } = req.body;
+  const { userCode, email, password } = req.body;
 
   try {
-    // Find the worker by userCode
-    const worker = await Worker.findOne({ userCode });
+    // Find the worker by userCode and email
+    const worker = await Worker.findOne({ userCode, email });
     console.log('Worker found:', worker); // Log the worker object
 
     // Check if the worker exists and if they are approved
     if (!worker) {
-      return res.status(401).json({ message: 'Invalid user code or password.' });
+      return res.status(401).json({ message: 'Invalid user code, email, or password.' });
     }
 
     // Check if the worker is approved
@@ -266,7 +266,7 @@ export const loginWorker = async (req, res) => {
     console.log('Password match:', isMatch); // Log the result of the password comparison
 
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid user code or password.' });
+      return res.status(401).json({ message: 'Invalid user code, email, or password.' });
     }
 
     // Create a session for the logged-in worker
