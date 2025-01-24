@@ -85,8 +85,12 @@ export const addWorker = async (req, res) => {
       return res.status(400).json({ message: 'Worker already exists with this email.' });
     }
 
+    // Log the password before hashing
+    console.log('Password before hashing:', password);
+
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Hashed Password:', hashedPassword); // Log the hashed password
 
     // Create and save the new worker in a pending state
     const newWorker = new Worker({
