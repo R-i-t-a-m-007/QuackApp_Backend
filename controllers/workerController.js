@@ -245,7 +245,7 @@ export const loginWorker = async (req, res) => {
   try {
     // Find the worker by userCode and email
     const worker = await Worker.findOne({ userCode, email });
-    console.log('Worker found:', worker); // Log the worker object
+    
 
     // Check if the worker exists and if they are approved
     if (!worker) {
@@ -257,13 +257,10 @@ export const loginWorker = async (req, res) => {
       return res.status(403).json({ message: 'Your account is not approved yet. Please contact support.' });
     }
 
-    // Log the password being compared
-    console.log('Password being sent:', password); // Log the password
-    console.log('Stored hashed password:', worker.password); // Log the stored hashed password
+    
 
     // Compare the provided password with the stored hashed password
     const isMatch = await bcrypt.compare(password, worker.password);
-    console.log('Password match:', isMatch); // Log the result of the password comparison
 
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid user code, email, or password.' });
