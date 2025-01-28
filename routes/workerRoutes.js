@@ -14,7 +14,7 @@ import {
   getWorkersByShiftAndDate,
   fetchWorkerAvailabilityStatus
 } from '../controllers/workerController.js';
-import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';s
+import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
 const router = express.Router();
 
