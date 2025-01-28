@@ -12,7 +12,7 @@ import {
   getLoggedInWorker,
   uploadWorkerImage,
   getWorkersByShiftAndDate,
-  fetchWorkerAvailabilityStatus
+  getWorkerAvailability
 } from '../controllers/workerController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
@@ -31,6 +31,6 @@ router.put('/:workerId/availability', sessionMiddleware, updateWorkerAvailabilit
 router.post('/logout', logoutWorker); // Worker logout
 router.post('/:workerId/upload-image', sessionMiddleware, uploadWorkerImage); // Route for image upload
 router.get('/shift-date', sessionMiddleware, getWorkersByShiftAndDate); // Fetch workers based on shift and date
-router.get('/:workerId/availability-status', sessionMiddleware, fetchWorkerAvailabilityStatus); // New route for fetching availability status
+router.get('/:workerId/availability-status', sessionMiddleware, getWorkerAvailability); // New route for fetching availability status
 
 export default router;

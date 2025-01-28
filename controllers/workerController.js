@@ -413,26 +413,26 @@ export const getWorkersByShiftAndDate = async (req, res) => {
   }
 };
 
-export const fetchWorkerAvailabilityStatus = async (id) => {
-  try {
-    const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/${id}/availability-status`, {
-      method: 'GET',
-      credentials: 'include',
-    });
+// Fetch worker availability
+export const getWorkerAvailability = async (req, res) => {
+  const { workerId } = req.params;
 
-    if (response.ok) {
-      const availabilityData = await response.json();
-      const marked = {};
-      availabilityData.forEach(item => {
-        marked[item.date] = { selected: true, selectedColor: '#5cb3ff' }; // Mark available dates
-      });
-      setMarkedDates(marked);
-    } else {
-      const errorData = await response.json();
-      Alert.alert('Error', errorData.message || 'Failed to fetch availability');
+  try {
+    // Ensure the worker is logged in
+    if (!req.session.worker || req.session.worker._id !== workerId) {
+      return res.status(401).json({ message: 'Unauthorized access.' });
     }
+
+    // Fetch the worker by ID
+    const worker = await Worker.findById(workerId);
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    // Return the availability data
+    res.status(200).json(worker.availability); // Assuming availability is an array of objects with date and shift
   } catch (error) {
-    console.error('Error fetching availability:', error);
-    Alert.alert('Error', 'Something went wrong. Please try again.');
+    console.error('Error fetching worker availability:', error);
+    res.status(500).json({ message: 'Server error.' });
   }
 };
