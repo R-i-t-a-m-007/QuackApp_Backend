@@ -412,3 +412,27 @@ export const getWorkersByShiftAndDate = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
+export const fetchWorkerAvailabilityStatus = async (id) => {
+  try {
+    const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/${id}/availability-status`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const availabilityData = await response.json();
+      const marked = {};
+      availabilityData.forEach(item => {
+        marked[item.date] = { selected: true, selectedColor: '#5cb3ff' }; // Mark available dates
+      });
+      setMarkedDates(marked);
+    } else {
+      const errorData = await response.json();
+      Alert.alert('Error', errorData.message || 'Failed to fetch availability');
+    }
+  } catch (error) {
+    console.error('Error fetching availability:', error);
+    Alert.alert('Error', 'Something went wrong. Please try again.');
+  }
+};
