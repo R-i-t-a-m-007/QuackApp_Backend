@@ -66,8 +66,6 @@ export const companyLogin = async (req, res) => {
 };
 
 // Function to add a new company
-// Function to add a new company
-// Function to add a new company
 export const addCompany = async (req, res) => {
   const { name, email, phone, address, country, city, postcode, password } = req.body;
 
@@ -77,24 +75,6 @@ export const addCompany = async (req, res) => {
 
     if (!userId) {
       return res.status(401).json({ message: 'No user logged in.' });
-    }
-
-    // Fetch the user to check their package
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User  not found.' });
-    }
-
-    // Check if the user has a Pro package
-    if (user.package === 'Basic') {
-      // Check if the user already has a company
-      const existingCompany = await CompanyList.findOne({ user: userId });
-      if (existingCompany) {
-        return res.status(403).json({ message: 'Basic users can only create one company.' });
-      }
-    } else if (user.package === 'Pro') {
-      // Pro users can create unlimited companies
-      // No additional checks needed for Pro users
     }
 
     // Check if the company already exists by email
@@ -136,7 +116,6 @@ export const addCompany = async (req, res) => {
   }
 };
 
-// Fetch the list of companies associated with the logged-in user
 // Fetch the list of companies associated with the logged-in user
 export const getCompanies = async (req, res) => {
   try {
@@ -190,8 +169,7 @@ export const deleteCompany = async (req, res) => {
       return res.status(401).json({ message: 'No user logged in.' });
     }
 
-    // Check if the company belongs to the user
-    const company = await CompanyList.findOne({ _id: companyId, user: userId });
+    // Check if the company belongs to the user const company = await CompanyList.findOne({ _id: companyId, user: userId });
     if (!company) {
       return res.status(404).json({ message: 'Company not found or does not belong to the user.' });
     }
