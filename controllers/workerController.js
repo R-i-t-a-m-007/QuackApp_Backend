@@ -44,6 +44,37 @@ The QuackApp Team`,
   }
 };
 
+const sendApprovalEmail = async (email, name) => {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Your Worker Registration has been Approved',
+    text: `Hello ${name},
+
+Congratulations! Your registration has been approved! You can now log in using your credentials.
+
+Please follow the previous registration email for your User Code and Password.
+
+Best regards,
+The QuackApp Team`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Approval email sent to worker:', email);
+  } catch (error) {
+    console.error('Error sending approval email to worker:', error);
+  }
+};
+
 // Add a new worker
 export const addWorker = async (req, res) => {
   const { name, email, phone, role, department, address, joiningDate, password, userCode } = req.body;
