@@ -1,6 +1,8 @@
 import Worker from '../models/Worker.js';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
+import User from '../models/User.js';
+import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
 
 // Function to send email to the worker with credentials
 const sendWorkerEmail = async (email, name, role, userCode, password) => {
@@ -42,38 +44,6 @@ The QuackApp Team`,
   }
 };
 
-// Function to send registration acknowledgment email without credentials
-const sendApprovalEmail = async (email, name) => {
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Your Worker Registration has been Approved',
-    text: `Hello ${name},
-
-Congratulations! Your registration has been approved! You can now log in using your credentials.
-
-Please follow the previous registration email for your User Code and Password.
-
-Best regards,
-The QuackApp Team`,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('Approval email sent to worker:', email);
-  } catch (error) {
-    console.error('Error sending approval email to worker:', error);
-  }
-};
-
 // Add a new worker
 export const addWorker = async (req, res) => {
   const { name, email, phone, role, department, address, joiningDate, password, userCode } = req.body;
@@ -91,6 +61,34 @@ export const addWorker = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log('Hashed Password:', hashedPassword); // Log the hashed password
+
+    // Check if the user or company is adding the worker
+    const userId = req.session.user ? req.session.user.id : null;
+    const companyId = req.session.company ? req.session.company._id : null;
+
+    // If a user is logged in, link the worker to the user
+    if (userId) {
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User  not found.' });
+      }
+      // Check if the user code matches the user's code
+      if (user.userCode !== userCode) {
+        return res.status(403).json({ message: 'User  code does not match.' });
+      }
+    }
+
+    // If a company is logged in, link the worker to the company
+    if (companyId) {
+      const company = await CompanyList.findById(companyId);
+      if (!company) {
+        return res.status(404).json({ message: 'Company not found.' });
+      }
+      // Check if the user code matches the company's code
+      if (company.comp_code !== userCode) {
+        return res.status(403).json({ message: 'Company code does not match.' });
+      }
+    }
 
     // Create and save the new worker in a pending state
     const newWorker = new Worker({
@@ -134,20 +132,18 @@ export const approveWorker = async (req, res) => {
     // Send an email to the worker notifying them of approval without credentials
     await sendApprovalEmail(worker.email, worker.name);
 
-    res.status(200).json({ message: 'Worker approved successfully.' });
+    res.status(200).json({ message : 'Worker approved successfully.' });
   } catch (error) {
     console.error('Error approving worker:', error);
     res.status(500).json({ message: 'Server error while approving worker.' });
   }
 };
 
-
 // Decline Worker
 export const declineWorker = async (req, res) => {
   const { workerId } = req.params;
 
   try {
-    // Delete the worker request
     const deletedWorker = await Worker.findByIdAndDelete(workerId);
 
     if (!deletedWorker) {
@@ -163,14 +159,11 @@ export const declineWorker = async (req, res) => {
 
 // Get Workers with approved: false
 export const getPendingWorkers = async (req, res) => {
-  const { userCode } = req.session.user; // Get the logged-in user's userCode
-  console.log('User  Code:', userCode); // Log the user code
+  const { userCode } = req.session.user || req.session.company; // Get the logged-in user's or company's userCode
 
   try {
-    // Fetch all workers with approved: false and matching userCode
     const pendingWorkers = await Worker.find({ approved: false, userCode });
 
-    console.log('Pending Workers:', pendingWorkers); // Log the fetched workers
     res.status(200).json(pendingWorkers);
   } catch (error) {
     console.error('Error fetching pending workers:', error);
@@ -180,10 +173,9 @@ export const getPendingWorkers = async (req, res) => {
 
 // Get Workers with approved: true
 export const getApprovedWorkers = async (req, res) => {
-  const { userCode } = req.session.user; // Get the logged-in user's userCode
+  const { userCode } = req.session.user || req.session.company; // Get the logged-in user's or company's userCode
 
   try {
-    // Fetch all workers with approved: true and matching userCode
     const approvedWorkers = await Worker.find({ approved: true, userCode });
 
     res.status(200).json(approvedWorkers);
@@ -193,15 +185,29 @@ export const getApprovedWorkers = async (req, res) => {
   }
 };
 
-// Other functions remain unchanged...
-
 // Update a worker's details
 export const updateWorker = async (req, res) => {
   const { workerId } = req.params;
   const { name, email, phone, role, department, address, joiningDate } = req.body;
 
   try {
-    // Update the worker's details
+    const worker = await Worker.findById(workerId);
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    // Ensure the user or company has permission to update the worker
+    const userId = req.session.user ? req.session.user.id : null;
+    const companyId = req.session.company ? req.session.company._id : null;
+
+    if (userId && worker.userCode !== req.session.user.userCode) {
+      return res.status(403).json({ message: 'You do not have permission to update this worker.' });
+    }
+
+    if (companyId && worker.userCode !== req.session.company.comp_code) {
+      return res.status(403).json({ message: 'You do not have permission to update this worker.' });
+    }
+
     const updatedWorker = await Worker.findByIdAndUpdate(
       workerId,
       { name, email, phone, role, department, address, joiningDate },
@@ -224,7 +230,6 @@ export const getWorkerById = async (req, res) => {
   const { workerId } = req.params;
 
   try {
-    // Fetch the worker by ID
     const worker = await Worker.findById(workerId);
 
     if (!worker) {
@@ -243,30 +248,22 @@ export const loginWorker = async (req, res) => {
   const { userCode, email, password } = req.body;
 
   try {
-    // Find the worker by userCode and email
     const worker = await Worker.findOne({ userCode, email });
-    
 
-    // Check if the worker exists and if they are approved
     if (!worker) {
       return res.status(401).json({ message: 'Invalid user code, email, or password.' });
     }
 
-    // Check if the worker is approved
     if (!worker.approved) {
       return res.status(403).json({ message: 'Your account is not approved yet. Please contact support.' });
     }
 
-    
-
-    // Compare the provided password with the stored hashed password
     const isMatch = await bcrypt.compare(password, worker.password);
 
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid user code, email, or password.' });
     }
 
-    // Create a session for the logged-in worker
     req.session.worker = { _id: worker._id, userCode: worker.userCode };
 
     res.status(200).json({ message: 'Login successful.', worker });
@@ -282,12 +279,10 @@ export const updateWorkerAvailability = async (req, res) => {
   const { date, shift } = req.body; // Expecting date and single shift from the request body
 
   try {
-    // Ensure a worker is logged in
     if (!req.session.worker || req.session.worker._id !== workerId) {
       return res.status(401).json({ message: 'Unauthorized access.' });
     }
 
-    // Update worker's availability
     const updatedWorker = await Worker.findByIdAndUpdate(
       workerId,
       { $push: { availability: { date, shift } } }, // Push new availability with single shift
@@ -305,9 +300,9 @@ export const updateWorkerAvailability = async (req, res) => {
   }
 };
 
+// Logout worker
 export const logoutWorker = async (req, res) => {
   try {
-    // Ensure a worker is logged in
     if (!req.session.worker) {
       return res.status(401).json({ message: 'No worker logged in.' });
     }
@@ -327,16 +322,15 @@ export const logoutWorker = async (req, res) => {
   }
 };
 
+// Get logged-in worker details
 export const getLoggedInWorker = async (req, res) => {
   try {
-    // Ensure a worker is logged in
     if (!req.session.worker || !req.session.worker._id) {
       return res.status(401).json({ message: 'No worker logged in.' });
     }
 
     const workerId = req.session.worker._id;
 
-    // Fetch all information for the logged-in worker
     const worker = await Worker.findById(workerId);
 
     if (!worker) {
@@ -350,21 +344,19 @@ export const getLoggedInWorker = async (req, res) => {
   }
 };
 
+// Upload worker image
 export const uploadWorkerImage = async (req, res) => {
   const { workerId } = req.params;
 
   try {
-    // Ensure the worker is logged in
     if (!req.session.worker || req.session.worker._id !== workerId) {
       return res.status(401).json({ message: 'Unauthorized access.' });
     }
 
-    // Check if an image was uploaded
     if (!req.body.image) {
       return res.status(400).json({ message: 'No image provided.' });
     }
 
-    // Update worker with the image (base64 string)
     const updatedWorker = await Worker.findByIdAndUpdate(
       workerId,
       { image: req.body.image }, // Store the base64 image
@@ -387,13 +379,11 @@ export const getWorkersByShiftAndDate = async (req, res) => {
   const { date, shift } = req.query; // Expecting date and shift as query parameters
 
   try {
-    // Convert date string to Date object
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) {
       return res.status(400).json({ message: 'Invalid date format.' });
     }
 
-    // Fetch workers who are available on the specified date and shift
     const workers = await Worker.find({
       availability: {
         $elemMatch: {
@@ -415,18 +405,15 @@ export const getWorkerAvailability = async (req, res) => {
   const { workerId } = req.params;
 
   try {
-    // Ensure the worker is logged in
     if (!req.session.worker || req.session.worker._id !== workerId) {
       return res.status(401).json({ message: 'Unauthorized access.' });
     }
 
-    // Fetch the worker by ID
     const worker = await Worker.findById(workerId);
     if (!worker) {
       return res.status(404).json({ message: 'Worker not found.' });
     }
 
-    // Return the availability data
     res.status(200).json(worker.availability); // Assuming availability is an array of objects with date and shift
   } catch (error) {
     console.error('Error fetching worker availability:', error);
