@@ -40,6 +40,7 @@ The QuackApp Team`,
 };
 
 // Function to handle company login
+// Company Login Controller
 export const companyLogin = async (req, res) => {
   const { compcode, password } = req.body;
 
@@ -57,7 +58,13 @@ export const companyLogin = async (req, res) => {
     }
 
     // Create a session for the logged-in company
-    req.session.company = company; // Store the company in the session
+    req.session.company = {
+      _id: company._id,
+      name: company.name,
+      email: company.email,
+      userCode: company.comp_code, // Store the company code in the session
+    }; 
+
     res.status(200).json({ message: 'Login successful', company });
   } catch (error) {
     console.error(error);
