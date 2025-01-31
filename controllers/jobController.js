@@ -1,10 +1,11 @@
 import Job from '../models/Job.js';
 import Worker from '../models/Worker.js'; // Import the Worker model
+import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
 
 // Create a new job
 export const createJob = async (req, res) => {
   const { title, description, location, date, shift, workersRequired } = req.body;
-  const userCode = req.session.user.userCode; // Assuming userCode is stored in the session
+  const userCode = req.session.user ? req.session.user.userCode : req.session.company.comp_code; // Get userCode from session
 
   try {
     const newJob = new Job({
@@ -27,18 +28,18 @@ export const createJob = async (req, res) => {
 
 // Fetch jobs for the logged-in worker based on userCode and jobStatus false
 export const getJobsForWorker = async (req, res) => {
-  const workerId = req.session.worker._id; // Get the logged-in worker ID from the session
+  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
 
   try {
     // Find the worker
-    const worker = await Worker.findById(workerId);
-    
-    if (!worker) {
+    const worker = workerId ? await Worker.findById(workerId) : null;
+
+    if (workerId && !worker) {
       return res.status(404).json({ message: 'Worker not found.' });
     }
 
     // Fetch jobs where the userCode matches and jobStatus is false
-    const jobs = await Job.find({ userCode: worker.userCode, jobStatus: false, workers: { $ne: workerId } });
+    const jobs = await Job.find({ userCode: worker ? worker.userCode : req.session.company.comp_code, jobStatus: false, workers: { $ne: workerId } });
     res.status(200).json(jobs);
   } catch (error) {
     console.error('Error fetching jobs:', error);
@@ -48,18 +49,18 @@ export const getJobsForWorker = async (req, res) => {
 
 // Fetch jobs with jobStatus true
 export const getCompletedJobs = async (req, res) => {
-  const workerId = req.session.worker._id; // Get the logged-in worker ID from the session
+  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
 
   try {
     // Find the worker
-    const worker = await Worker.findById(workerId);
-    
-    if (!worker) {
+    const worker = workerId ? await Worker.findById(workerId) : null;
+
+    if (workerId && !worker) {
       return res.status(404).json({ message: 'Worker not found.' });
     }
 
     // Fetch jobs where the userCode matches and jobStatus is true
-    const jobs = await Job.find({ userCode: worker.userCode, jobStatus: true, workers: workerId });
+    const jobs = await Job.find({ userCode: worker ? worker.userCode : req.session.company.comp_code, jobStatus: true, workers: workerId });
     res.status(200).json(jobs);
   } catch (error) {
     console.error('Error fetching completed jobs:', error);
@@ -68,10 +69,9 @@ export const getCompletedJobs = async (req, res) => {
 };
 
 // Accept a job
-// controllers/jobController.js
 export const acceptJob = async (req, res) => {
   const { jobId } = req.params; // Get the job ID from the request parameters
-  const workerId = req.session.worker._id; // Get the logged-in worker ID from the session
+  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
 
   try {
     // Find the job by ID
@@ -87,12 +87,15 @@ export const acceptJob = async (req, res) => {
     }
 
     // Check if the worker is already in the workers array
-    if (job.workers.includes(workerId)) {
+    if (workerId && job.workers.includes(workerId)) {
       return res.status(400).json({ message: 'You have already accepted this job.' });
     }
 
     // Add the worker ID to the job
-    job.workers.push(workerId); // Add worker ID to the workers array
+    if (workerId) {
+      job.workers.push(workerId); // Add worker ID to the workers array
+    }
+
     await job.save(); // Save the updated job
 
     // Check if the number of workers matches the workersRequired
@@ -137,7 +140,7 @@ export const updateJobStatus = async (req, res) => {
 
 // Fetch jobs for the logged-in worker where the worker ID is in the workers array
 export const getMyTasks = async (req, res) => {
-  const workerId = req.session.worker._id; // Get the logged-in worker ID from the session
+  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
 
   try {
     // Fetch jobs where the worker ID is in the workers array
@@ -146,5 +149,19 @@ export const getMyTasks = async (req, res) => {
   } catch (error) {
     console.error('Error fetching my tasks:', error);
     res.status(500).json({ message: 'Server error while fetching my tasks.' });
+  }
+};
+
+// Fetch jobs for the logged-in company
+export const getJobsForCompany = async (req, res) => {
+  const companyId = req.session.company ? req.session.company._id : null; // Get the logged-in company ID from the session
+
+  try {
+    // Fetch jobs where the userCode matches the company's code
+    const jobs = await Job.find({ userCode: req.session.company.comp_code });
+    res.status(200).json(jobs);
+  } catch (error) {
+    console.error('Error fetching jobs for company:', error);
+    res.status(500).json({ message: 'Server error while fetching jobs for company.' });
   }
 };
