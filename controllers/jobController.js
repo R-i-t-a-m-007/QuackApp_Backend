@@ -3,9 +3,17 @@ import Worker from '../models/Worker.js'; // Import the Worker model
 import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
 
 // Create a new job
+// Create a new job
+// Create a new job
 export const createJob = async (req, res) => {
   const { title, description, location, date, shift, workersRequired } = req.body;
-  const userCode = req.session.user ? req.session.user.userCode : req.session.company.comp_code; // Get userCode from session
+
+  // Get userCode from session (either from user or company)
+  const userCode = req.session.user ? req.session.user.userCode : req.session.company ? req.session.company.userCode : null;
+
+  if (!userCode) {
+    return res.status(403).json({ message: 'Unauthorized. User code is required.' });
+  }
 
   try {
     const newJob = new Job({
@@ -25,7 +33,6 @@ export const createJob = async (req, res) => {
     res.status(500).json({ message: 'Server error while creating job.' });
   }
 };
-
 // Fetch jobs for the logged-in worker based on userCode and jobStatus false
 export const getJobsForWorker = async (req, res) => {
   const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
