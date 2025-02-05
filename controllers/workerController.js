@@ -406,6 +406,7 @@ export const uploadWorkerImage = async (req, res) => {
 };
 
 // Fetch workers based on shift and date
+// Fetch workers based on shift and date
 export const getWorkersByShiftAndDate = async (req, res) => {
   const { date, shift } = req.query; // Expecting date and shift as query parameters
 
@@ -415,6 +416,14 @@ export const getWorkersByShiftAndDate = async (req, res) => {
       return res.status(400).json({ message: 'Invalid date format.' });
     }
 
+    // Get the userCode from the session
+    const userCode = req.session.user ? req.session.user.userCode : req.session.company ? req.session.company.userCode : null;
+
+    if (!userCode) {
+      return res.status(403).json({ message: 'Unauthorized access. No user or company logged in.' });
+    }
+
+    // Find workers based on availability and userCode
     const workers = await Worker.find({
       availability: {
         $elemMatch: {
@@ -422,6 +431,7 @@ export const getWorkersByShiftAndDate = async (req, res) => {
           shift: shift,
         },
       },
+      userCode: userCode, // Filter by userCode
     });
 
     res.status(200).json(workers);
