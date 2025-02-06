@@ -174,7 +174,7 @@ export const getJobsForCompany = async (req, res) => {
 };
 
 export const getJobById = async (req, res) => {
-  const { jobId } = req.params; // Get jobId from request parameters
+  const { jobId } = req.params.id; // Get jobId from request parameters
   console.log(`Received jobId: ${jobId}`); // Log the jobId
 
   try {
