@@ -175,14 +175,13 @@ export const getJobsForCompany = async (req, res) => {
 
 export const getJobById = async (req, res) => {
   const { jobId } = req.params; // Get jobId from request parameters
+  console.log(`Received jobId: ${jobId}`); // Log the jobId
 
   try {
     const job = await Job.findById(jobId);
-
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
-
     res.status(200).json(job); // Return the job details
   } catch (error) {
     console.error('Error fetching job:', error);
