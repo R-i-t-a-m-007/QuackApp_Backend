@@ -165,7 +165,7 @@ export const getJobsForCompany = async (req, res) => {
 
   try {
     // Fetch jobs where the userCode matches the company's code
-    const jobs = await Job.find({ userCode: req.session.company.comp_code });
+    const jobs = await Job.find({ userCode: req.session.company.userCode }); // Use userCode from the session
     res.status(200).json(jobs);
   } catch (error) {
     console.error('Error fetching jobs for company:', error);
