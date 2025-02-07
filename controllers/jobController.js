@@ -162,7 +162,7 @@ export const getMyTasks = async (req, res) => {
 // Fetch jobs for the logged-in company
 // Fetch jobs for a specific user or company based on user code
 export const getJobsForUserAndCompany  = async (req, res) => {
-  const userId = req.session.user ? req.session.user._id : null; // Get the logged-in user ID from the session
+  const userId = req.session.user ? req.session.user.id : null; // Get the logged-in user ID from the session
   const companyId = req.session.company ? req.session.company._id : null; // Get the logged-in company ID from the session
 
   try {
