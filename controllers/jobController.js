@@ -160,16 +160,28 @@ export const getMyTasks = async (req, res) => {
 };
 
 // Fetch jobs for the logged-in company
-export const getJobsForCompany = async (req, res) => {
+// Fetch jobs for a specific user or company based on user code
+export const getJobsForUserAndCompany  = async (req, res) => {
+  const userId = req.session.user ? req.session.user._id : null; // Get the logged-in user ID from the session
   const companyId = req.session.company ? req.session.company._id : null; // Get the logged-in company ID from the session
 
   try {
-    // Fetch jobs where the userCode matches the company's code
-    const jobs = await Job.find({ userCode: req.session.company.userCode }); // Use userCode from the session
+    let jobs;
+
+    if (userId) {
+      // Fetch jobs for the user
+      jobs = await Job.find({ userCode: req.session.user.userCode });
+    } else if (companyId) {
+      // If user does not exist, fetch jobs for the company
+      jobs = await Job.find({ userCode: req.session.company.userCode });
+    } else {
+      return res.status(403).json({ message: 'Unauthorized. User or company ID is required.' });
+    }
+
     res.status(200).json(jobs);
   } catch (error) {
-    console.error('Error fetching jobs for company:', error);
-    res.status(500).json({ message: 'Server error while fetching jobs for company.' });
+    console.error('Error fetching jobs for user or company:', error);
+    res.status(500).json({ message: 'Server error while fetching jobs.' });
   }
 };
 
