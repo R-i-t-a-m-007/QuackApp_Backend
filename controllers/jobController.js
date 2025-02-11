@@ -38,21 +38,36 @@ export const getJobsForWorker = async (req, res) => {
   const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
 
   try {
-    // Find the worker
-    const worker = workerId ? await Worker.findById(workerId) : null;
+    // Ensure workerId exists
+    if (!workerId) {
+      return res.status(400).json({ message: 'Worker ID is required.' });
+    }
 
-    if (workerId && !worker) {
+    // Find the worker
+    const worker = await Worker.findById(workerId);
+    if (!worker) {
       return res.status(404).json({ message: 'Worker not found.' });
     }
 
-    // Fetch jobs where the userCode matches and jobStatus is false
-    const jobs = await Job.find({ userCode: worker ? worker.userCode : req.session.company.comp_code, jobStatus: false, workers: { $ne: workerId } });
+    // Fetch jobs where:
+    // - `userCode` matches the worker's `userCode` or the company's `comp_code`
+    // - `jobStatus` is `false`
+    // - `workerId` is in `invitedJobs`
+    // - `workers` does not include the workerId (to prevent fetching already accepted jobs)
+    const jobs = await Job.find({
+      userCode: worker.userCode || req.session.company.comp_code,
+      jobStatus: false,
+      invitedJobs: workerId, // Ensures the worker has been invited
+      workers: { $ne: workerId }, // Ensures worker has not accepted the job yet
+    });
+
     res.status(200).json(jobs);
   } catch (error) {
     console.error('Error fetching jobs:', error);
     res.status(500).json({ message: 'Server error while fetching jobs.' });
   }
 };
+
 
 // Fetch jobs with jobStatus true
 export const getCompletedJobs = async (req, res) => {
