@@ -223,9 +223,11 @@ export const inviteWorkersToJob = async (req, res) => {
   }
 };
 
-// Fetch jobs for a worker that they have been invited to
+// Fetch jobs that a worker has been invited to
 export const getInvitedJobsForWorker = async (req, res) => {
   const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+
+  console.log('Worker ID:', workerId); // Log the worker ID
 
   if (!workerId) {
     return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
@@ -233,6 +235,7 @@ export const getInvitedJobsForWorker = async (req, res) => {
 
   try {
     const jobs = await Job.find({ invitedWorkers: workerId });
+    console.log('Invited Jobs:', jobs); // Log the jobs found
     res.status(200).json(jobs);
   } catch (error) {
     console.error('Error fetching invited jobs:', error);
