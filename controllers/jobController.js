@@ -132,6 +132,31 @@ export const acceptJob = async (req, res) => {
   }
 };
 
+// Decline a job invitation
+export const declineJob = async (req, res) => {
+  const { jobId } = req.params; // Get the job ID from the request parameters
+  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+
+  try {
+    // Find the job by ID
+    const job = await Job.findById(jobId);
+
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found.' });
+    }
+
+    // Remove worker from invitedWorkers
+    job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId.toString());
+
+    await job.save(); // Save the updated job
+
+    res.status(200).json({ message: 'Job invitation declined successfully!', job });
+  } catch (error) {
+    console.error('Error declining job invitation:', error);
+    res.status(500).json({ message: 'Server error while declining job invitation.' });
+  }
+};
+
 // Update job status based on the number of workers
 export const updateJobStatus = async (req, res) => {
   const { jobId } = req.params; // Get the job ID from the request parameters
@@ -257,6 +282,7 @@ export const getInvitedJobsForWorker = async (req, res) => {
 };
 
 // Accept a job invitation
+// Accept or decline a job invitation
 export const respondToJobInvitation = async (req, res) => {
   const { jobId, response } = req.body; // response can be 'accept' or 'decline'
   const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session

@@ -6,6 +6,7 @@ import {
   getCompletedJobs,
   updateJobStatus,
   acceptJob,
+  declineJob,
   getMyTasks,
   getJobsForUserAndCompany,
   getJobById,
@@ -22,6 +23,7 @@ router.get('/worker', sessionMiddleware, getJobsForWorker); // Route to fetch jo
 router.get('/completed', sessionMiddleware, getCompletedJobs); // Route to fetch completed jobs for the logged-in worker
 router.put('/status/:jobId', sessionMiddleware, updateJobStatus); // Route to update job status
 router.put('/accept/:jobId', sessionMiddleware, acceptJob); // Route to accept a job
+router.post('/decline/:jobId', sessionMiddleware, declineJob); // Route to decline a job invitation
 router.get('/mine', sessionMiddleware, getMyTasks); // Route to fetch jobs where the worker ID is in the workers array
 router.get('/company', sessionMiddleware, getJobsForUserAndCompany); // New route to fetch jobs for the logged-in company
 router.get('/:id', sessionMiddleware, getJobById); // New route to fetch a job by ID
