@@ -198,3 +198,77 @@ export const getJobById = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching job.' });
   }
 };
+
+// controllers/jobController.js
+
+// Invite workers to a job
+export const inviteWorkersToJob = async (req, res) => {
+  const { jobId } = req.params;
+  const { workerIds } = req.body; // Array of worker IDs
+
+  try {
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found.' });
+    }
+
+    // Add worker IDs to the invitedWorkers array
+    job.invitedWorkers.push(...workerIds);
+    await job.save();
+
+    res.status(200).json({ message: 'Workers invited successfully!', job });
+  } catch (error) {
+    console.error('Error inviting workers:', error);
+    res.status(500).json({ message: 'Server error while inviting workers.' });
+  }
+};
+
+// Fetch jobs for a worker that they have been invited to
+export const getInvitedJobsForWorker = async (req, res) => {
+  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+
+  if (!workerId) {
+    return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
+  }
+
+  try {
+    const jobs = await Job.find({ invitedWorkers: workerId });
+    res.status(200).json(jobs);
+  } catch (error) {
+    console.error('Error fetching invited jobs:', error);
+    res.status(500).json({ message: 'Server error while fetching invited jobs.' });
+  }
+};
+
+// Accept a job invitation
+export const respondToJobInvitation = async (req, res) => {
+  const { jobId, response } = req.body; // response can be 'accept' or 'decline'
+  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+
+  try {
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found.' });
+    }
+
+    if (response === 'accept') {
+      // Add worker to the job's workers array
+      job.workers.push(workerId);
+      // Remove worker from invitedWorkers
+      job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId.toString());
+      // Check if the job is now filled
+      if (job.workers.length >= job.workersRequired) {
+        job.jobStatus = true; // Mark job as filled
+      }
+    } else if (response === 'decline') {
+      // Remove worker from invitedWorkers
+      job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId.toString());
+    }
+
+    await job.save();
+    res.status(200).json({ message: `Job invitation ${response}ed successfully!`, job });
+  } catch (error) {
+    console.error('Error responding to job invitation:', error);
+    res.status(500).json({ message: 'Server error while responding to job invitation.' });
+  }
+};

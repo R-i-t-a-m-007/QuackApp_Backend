@@ -1,4 +1,5 @@
 import Worker from '../models/Worker.js';
+import Job from '../models/Job.js'; // Import the Job model
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
@@ -133,6 +134,7 @@ export const addWorker = async (req, res) => {
       password: hashedPassword,
       userCode, // Include userCode
       approved: false, // Initially set to false
+      invitedJobs: [], // Initialize invitedJobs array
     });
 
     await newWorker.save();
@@ -144,6 +146,100 @@ export const addWorker = async (req, res) => {
   } catch (error) {
     console.error('Error adding worker:', error);
     res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Invite a worker to a job
+export const inviteWorkerToJob = async (req, res) => {
+  const { workerId } = req.params; // Get the worker ID from the request parameters
+  const { jobId } = req.body; // Get the job ID from the request body
+
+  try {
+    const worker = await Worker.findById(workerId);
+    const job = await Job.findById(jobId);
+
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found.' });
+    }
+
+    // Add the job ID to the worker's invitedJobs array
+    worker.invitedJobs.push(jobId);
+    await worker.save();
+
+    // Add the worker ID to the job's invitedWorkers array
+    job.invitedWorkers.push(workerId);
+    await job.save();
+
+    res.status(200).json({ message: 'Worker invited successfully!', worker });
+  } catch (error) {
+    console.error('Error inviting worker:', error);
+    res.status(500).json({ message: 'Server error while inviting worker.' });
+  }
+};
+
+// Fetch jobs that a worker has been invited to
+export const getInvitedJobsForWorker = async (req, res) => {
+  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+
+  if (!workerId) {
+    return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
+  }
+
+  try {
+    const worker = await Worker.findById(workerId).populate('invitedJobs'); // Populate the invitedJobs field
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    res.status(200).json(worker.invitedJobs); // Return the jobs the worker has been invited to
+  } catch (error) {
+    console.error('Error fetching invited jobs:', error);
+    res.status(500).json({ message: 'Server error while fetching invited jobs.' });
+  }
+};
+
+// Accept or decline a job invitation
+export const respondToJobInvitation = async (req, res) => {
+  const { jobId, response } = req.body; // response can be 'accept' or 'decline'
+  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+
+  try {
+    const worker = await Worker.findById(workerId);
+    const job = await Job.findById(jobId);
+
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found.' });
+    }
+
+    if (response === 'accept') {
+      // Add worker to the job's workers array
+      job.workers.push(workerId);
+      // Remove worker from invitedWorkers
+      job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId.toString());
+      // Check if the job is now filled
+      if (job.workers.length >= job.workersRequired) {
+        job.jobStatus = true; // Mark job as filled
+      }
+    } else if (response === 'decline') {
+      // Remove worker from invitedJobs
+      worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== jobId.toString());
+    }
+
+    await job.save();
+    await worker.save();
+
+    res.status(200).json({ message: `Job invitation ${response}ed successfully!`, job });
+  } catch (error) {
+    console.error('Error responding to job invitation:', error);
+    res.status(500).json({ message: 'Server error while responding to job invitation.' });
   }
 };
 
@@ -163,7 +259,7 @@ export const approveWorker = async (req, res) => {
     // Send an email to the worker notifying them of approval without credentials
     await sendApprovalEmail(worker.email, worker.name);
 
-    res.status(200).json({ message : 'Worker approved successfully.' });
+    res.status(200).json({ message: 'Worker approved successfully.' });
   } catch (error) {
     console.error('Error approving worker:', error);
     res.status(500).json({ message: 'Server error while approving worker.' });
@@ -405,7 +501,6 @@ export const uploadWorkerImage = async (req, res) => {
   }
 };
 
-// Fetch workers based on shift and date
 // Fetch workers based on shift and date
 export const getWorkersByShiftAndDate = async (req, res) => {
   const { date, shift } = req.query; // Expecting date and shift as query parameters

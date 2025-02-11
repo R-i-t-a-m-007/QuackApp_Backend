@@ -1,3 +1,4 @@
+// models/Worker.js
 import mongoose from 'mongoose';
 
 const workerSchema = new mongoose.Schema({
@@ -16,6 +17,8 @@ const workerSchema = new mongoose.Schema({
   image: { type: String, default: null }, // Field to store the image as a base64 string
   userCode: { type: String, required: true }, // New field for user code
   approved: { type: Boolean, default: false }, // Field to track approval status
+  invitedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }] // Track invited jobs
 });
 
-export default mongoose.model('Worker', workerSchema);
+const Worker = mongoose.model('Worker', workerSchema);
+export default Worker;

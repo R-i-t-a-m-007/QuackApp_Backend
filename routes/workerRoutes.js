@@ -12,7 +12,10 @@ import {
   getLoggedInWorker,
   uploadWorkerImage,
   getWorkersByShiftAndDate,
-  getWorkerAvailability
+  getWorkerAvailability,
+  inviteWorkerToJob, // New import for inviting workers
+  getInvitedJobsForWorker, // New import for fetching invited jobs
+  respondToJobInvitation // New import for responding to job invitations
 } from '../controllers/workerController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
@@ -31,6 +34,11 @@ router.put('/:workerId/availability', sessionMiddleware, updateWorkerAvailabilit
 router.post('/logout', logoutWorker); // Worker logout
 router.post('/:workerId/upload-image', sessionMiddleware, uploadWorkerImage); // Route for image upload
 router.get('/shift-date', sessionMiddleware, getWorkersByShiftAndDate); // Fetch workers based on shift and date
-router.get('/:workerId/availability-status', sessionMiddleware, getWorkerAvailability); // New route for fetching availability status
+router.get('/:workerId/availability-status', sessionMiddleware, getWorkerAvailability); // Fetch availability status
+
+// New routes for job invitations
+router.post('/invite/:workerId', sessionMiddleware, inviteWorkerToJob); // Invite a worker to a job
+router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
+router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
 
 export default router;
