@@ -1,6 +1,18 @@
 // routes/jobRoutes.js
 import express from 'express';
-import { createJob, getJobsForWorker, getCompletedJobs, updateJobStatus, acceptJob, getMyTasks, getJobsForUserAndCompany,getJobById } from '../controllers/jobController.js';
+import {
+  createJob,
+  getJobsForWorker,
+  getCompletedJobs,
+  updateJobStatus,
+  acceptJob,
+  getMyTasks,
+  getJobsForUserAndCompany,
+  getJobById,
+  inviteWorkersToJob, // New import for inviting workers
+  getInvitedJobsForWorker, // New import for fetching invited jobs
+  respondToJobInvitation // New import for responding to job invitations
+} from '../controllers/jobController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
 const router = express.Router();
@@ -14,5 +26,9 @@ router.get('/mine', sessionMiddleware, getMyTasks); // Route to fetch jobs where
 router.get('/company', sessionMiddleware, getJobsForUserAndCompany); // New route to fetch jobs for the logged-in company
 router.get('/:id', sessionMiddleware, getJobById); // New route to fetch a job by ID
 
+// New routes for inviting workers and handling job invitations
+router.post('/invite/:jobId', sessionMiddleware, inviteWorkersToJob); // Invite workers to a job
+router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
+router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
 
 export default router;
