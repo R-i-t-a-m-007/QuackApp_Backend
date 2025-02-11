@@ -53,7 +53,7 @@ export const getJobsForWorker = async (req, res) => {
     const jobs = await Job.find({
       userCode: worker.userCode || req.session.company.comp_code,
       jobStatus: false,
-      invitedJobs: workerId,
+      invitedWorkers: workerId,
       workers: { $ne: workerId },
     });
 
