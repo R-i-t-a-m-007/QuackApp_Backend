@@ -35,38 +35,36 @@ export const createJob = async (req, res) => {
 };
 // Fetch jobs for the logged-in worker based on userCode and jobStatus false
 export const getJobsForWorker = async (req, res) => {
-  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+  const workerId = req.session.worker ? req.session.worker._id : null;
+  console.log('Worker ID:', workerId); // Debugging
 
   try {
-    // Ensure workerId exists
     if (!workerId) {
+      console.log('Error: Worker ID is missing');
       return res.status(400).json({ message: 'Worker ID is required.' });
     }
 
-    // Find the worker
     const worker = await Worker.findById(workerId);
     if (!worker) {
+      console.log('Error: Worker not found');
       return res.status(404).json({ message: 'Worker not found.' });
     }
 
-    // Fetch jobs where:
-    // - `userCode` matches the worker's `userCode` or the company's `comp_code`
-    // - `jobStatus` is `false`
-    // - `workerId` is in `invitedJobs`
-    // - `workers` does not include the workerId (to prevent fetching already accepted jobs)
     const jobs = await Job.find({
       userCode: worker.userCode || req.session.company.comp_code,
       jobStatus: false,
-      invitedJobs: workerId, // Ensures the worker has been invited
-      workers: { $ne: workerId }, // Ensures worker has not accepted the job yet
+      invitedJobs: workerId,
+      workers: { $ne: workerId },
     });
 
+    console.log('Jobs found:', jobs); // Debugging
     res.status(200).json(jobs);
   } catch (error) {
     console.error('Error fetching jobs:', error);
     res.status(500).json({ message: 'Server error while fetching jobs.' });
   }
 };
+
 
 
 // Fetch jobs with jobStatus true
