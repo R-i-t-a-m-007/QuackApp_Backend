@@ -41,6 +41,6 @@ router.get('/:workerId/availability-status', sessionMiddleware, getWorkerAvailab
 router.post('/invite/:workerId', sessionMiddleware, inviteWorkerToJob); // Invite a worker to a job
 router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
 router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
-router.get('/api/workers',getAllWorkers);
+router.get('/workers',getAllWorkers);
 
 export default router;
