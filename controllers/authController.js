@@ -334,3 +334,30 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
+export const updateUserDetails = async (req, res) => {
+  const { userId, name, email, phone, address, city, country, postcode } = req.body;
+
+  try {
+    const user = await User.findById(userId); // Find the user by their ID
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update the user's details
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.phone = phone || user.phone;
+    user.address = address || user.address;
+    user.city = city || user.city;
+    user.country = country || user.country;
+    user.postcode = postcode || user.postcode;
+
+    await user.save(); // Save the updated user
+
+    return res.status(200).json({ message: 'User details updated successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

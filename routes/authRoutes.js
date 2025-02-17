@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerUser , loginUser , getLoggedInUser , logoutUser , requestOtp, resetPassword, storeSelectedPackage,getSessionData,updateUserPackage, uploadUserImage, getAllUsers } from '../controllers/authController.js';
+import { registerUser , loginUser , getLoggedInUser , logoutUser , requestOtp, resetPassword, storeSelectedPackage,getSessionData,updateUserPackage, uploadUserImage, getAllUsers, updateUserDetails } from '../controllers/authController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -16,6 +16,7 @@ router.get('/session', getSessionData);
 router.post('/updatepackage', updateUserPackage); // New route for updating package
 router.post('/:userId/upload-image', uploadUserImage); // New route for uploading user image
 router.get('/users', getAllUsers); // API to get all users
+router.put('/update/:userId', updateUserDetails);
 
 
 
