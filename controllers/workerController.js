@@ -560,7 +560,7 @@ export const getWorkerAvailability = async (req, res) => {
 export const getAllWorkers = async (req, res) => {
   try {
     // Fetching all workers from the database
-    const workers = await Worker.find('-password');  // Adjust this to filter or paginate if needed
+    const workers = await Worker.find().select('-password');;  // Adjust this to filter or paginate if needed
 
     // Sending the workers data as response
     return res.status(200).json(workers);
