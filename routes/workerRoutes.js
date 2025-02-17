@@ -15,7 +15,8 @@ import {
   getWorkerAvailability,
   inviteWorkerToJob, // New import for inviting workers
   getInvitedJobsForWorker, // New import for fetching invited jobs
-  respondToJobInvitation // New import for responding to job invitations
+  respondToJobInvitation, // New import for responding to job invitations
+  getAllWorkers
 } from '../controllers/workerController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
@@ -40,5 +41,6 @@ router.get('/:workerId/availability-status', sessionMiddleware, getWorkerAvailab
 router.post('/invite/:workerId', sessionMiddleware, inviteWorkerToJob); // Invite a worker to a job
 router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
 router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
+router.get('/api/workers',getAllWorkers);
 
 export default router;

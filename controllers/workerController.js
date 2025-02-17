@@ -556,3 +556,16 @@ export const getWorkerAvailability = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
+export const getAllWorkers = async (req, res) => {
+  try {
+    // Fetching all workers from the database
+    const workers = await Worker.find('-password');  // Adjust this to filter or paginate if needed
+
+    // Sending the workers data as response
+    return res.status(200).json(workers);
+  } catch (error) {
+    console.error("Error fetching workers:", error);
+    return res.status(500).json({ message: "Failed to fetch workers" });
+  }
+};
