@@ -337,7 +337,7 @@ export const getAllUsers = async (req, res) => {
 
 export const updateUserDetails = async (req, res) => {
   const { userId, name, email, phone, address, city, country, postcode } = req.body;
-
+  console.log("Received userId:", userId); 
   try {
     const user = await User.findById(userId); // Find the user by their ID
     if (!user) {
