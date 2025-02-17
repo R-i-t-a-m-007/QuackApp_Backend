@@ -339,20 +339,21 @@ export const updateUserDetails = async (req, res) => {
   const { userId } = req.params;
   const { username, email, phone, address, postcode, package } = req.body;
   console.log("Received userId:", userId); 
+  
   try {
-    const user = await User.findById(userId); // Find the user by their ID
+    // Find the user by their ID
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Update the user's details
-    user.name = name || user.name;
+    // Update the user's details with the correct field names
+    user.username = username || user.username;
     user.email = email || user.email;
     user.phone = phone || user.phone;
     user.address = address || user.address;
-    user.city = city || user.city;
-    user.country = country || user.country;
     user.postcode = postcode || user.postcode;
+    user.package = package || user.package;
 
     await user.save(); // Save the updated user
 
@@ -362,3 +363,4 @@ export const updateUserDetails = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
