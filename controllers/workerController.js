@@ -572,9 +572,8 @@ export const getAllWorkers = async (req, res) => {
 
 export const updateWorkerDetails = async (req, res) => {
   const { workerId } = req.params;
-  const { name, email, phone, role, department, address } = req.body; // Removed uneditable fields
-
-  console.log("Received workerId:", workerId);
+  console.log("Worker ID received on the server:", workerId);  // Debugging line
+  const { name, email, phone, role, department, address } = req.body;
 
   try {
     // Find the worker by their ID
@@ -583,7 +582,7 @@ export const updateWorkerDetails = async (req, res) => {
       return res.status(404).json({ message: "Worker not found" });
     }
 
-    // Update only allowed fields
+    // Update fields as usual
     worker.name = name || worker.name;
     worker.email = email || worker.email;
     worker.phone = phone || worker.phone;
@@ -599,3 +598,4 @@ export const updateWorkerDetails = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
