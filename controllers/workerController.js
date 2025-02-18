@@ -574,7 +574,6 @@ export const updateWorkerDetails = async (req, res) => {
   const { workerId } = req.params;
   console.log("Worker ID received on the server:", workerId);  // Debugging line
   const { name, email, phone, role, department, address } = req.body;
-  console.log(req.body);
   
   try {
     // Find the worker by their ID
