@@ -17,7 +17,8 @@ import {
   getInvitedJobsForWorker, // New import for fetching invited jobs
   respondToJobInvitation, // New import for responding to job invitations
   getAllWorkers,
-  updateWorkerDetails
+  updateWorkerDetails,
+  deleteWorker
 } from '../controllers/workerController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
@@ -44,5 +45,7 @@ router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetc
 router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
 router.get('/workers',getAllWorkers);
 router.put("/update/:workerId", updateWorkerDetails);
+router.delete('/workers/:workerId', deleteWorker);
+
 
 export default router;

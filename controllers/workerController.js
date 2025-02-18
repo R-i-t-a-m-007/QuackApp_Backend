@@ -599,3 +599,22 @@ export const updateWorkerDetails = async (req, res) => {
   }
 };
 
+export const deleteWorker = async (req, res) => {
+  const { workerId } = req.params; // Get workerId from request parameters
+
+  try {
+    // Find the worker by ID
+    const worker = await Worker.findById(workerId);
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found' });
+    }
+
+    // Delete the worker
+    await Worker.findByIdAndDelete(workerId);
+
+    res.status(200).json({ message: 'Worker deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting worker:', error);
+    res.status(500).json({ message: 'Failed to delete worker.' });
+  }
+};
