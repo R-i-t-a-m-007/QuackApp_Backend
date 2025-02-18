@@ -43,6 +43,6 @@ router.post('/invite/:workerId', sessionMiddleware, inviteWorkerToJob); // Invit
 router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
 router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
 router.get('/workers',getAllWorkers);
-router.put("/update/:id", updateWorkerDetails);
+router.put("/update/:workerId", updateWorkerDetails);
 
 export default router;
