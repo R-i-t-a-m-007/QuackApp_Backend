@@ -569,3 +569,15 @@ export const getAllWorkers = async (req, res) => {
     return res.status(500).json({ message: "Failed to fetch workers" });
   }
 };
+
+export const updateWorkerDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedWorker = await Worker.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+    res.json(updatedWorker);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating worker" });
+  }
+};
