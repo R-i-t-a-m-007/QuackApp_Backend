@@ -571,13 +571,31 @@ export const getAllWorkers = async (req, res) => {
 };
 
 export const updateWorkerDetails = async (req, res) => {
+  const { workerId } = req.params;
+  const { name, email, phone, role, department, address } = req.body; // Removed uneditable fields
+
+  console.log("Received workerId:", workerId);
+
   try {
-    const { id } = req.params;
-    const updatedWorker = await Worker.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
-    res.json(updatedWorker);
+    // Find the worker by their ID
+    const worker = await Worker.findById(workerId);
+    if (!worker) {
+      return res.status(404).json({ message: "Worker not found" });
+    }
+
+    // Update only allowed fields
+    worker.name = name || worker.name;
+    worker.email = email || worker.email;
+    worker.phone = phone || worker.phone;
+    worker.role = role || worker.role;
+    worker.department = department || worker.department;
+    worker.address = address || worker.address;
+
+    await worker.save(); // Save the updated worker
+
+    return res.status(200).json({ message: "Worker details updated successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Error updating worker" });
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 };
