@@ -10,14 +10,13 @@ const UserSchema = new mongoose.Schema({
   package: { 
     type: String, 
     enum: ['Basic', 'Pro'], 
-    default: null,
+    default: null, // Allow null as a default value
   },
-  price: { type: Number, default: 0 }, // New price field
   createdAt: { type: Date, default: Date.now },
-  otp: { type: String },
-  otpExpire: { type: Date },
-  image: { type: String, default: null },
-  userCode: { type: String, required: true },
+  otp: { type: String }, // Add OTP field
+  otpExpire: { type: Date }, // Add OTP expiration field
+  image: { type: String, default: null }, // Field to store the user's profile image
+  userCode: { type: String, required: true }, // New field for user code
 });
 
-export default mongoose.model('User', UserSchema);
+export default mongoose.model('User ', UserSchema);
