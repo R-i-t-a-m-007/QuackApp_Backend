@@ -19,4 +19,4 @@ const UserSchema = new mongoose.Schema({
   userCode: { type: String, required: true }, // New field for user code
 });
 
-export default mongoose.model('User ', UserSchema);
+export default mongoose.model('User', UserSchema);
