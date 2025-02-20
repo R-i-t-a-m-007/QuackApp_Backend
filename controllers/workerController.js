@@ -354,22 +354,14 @@ export const updateWorker = async (req, res) => {
 
 // Fetch a single worker by ID
 export const getWorkerById = async (req, res) => {
-  console.log(req.params);
-  
-  const { workerId } = req.params.id;
-  
-
   try {
-    const worker = await Worker.findById(workerId);
-
+    const worker = await Worker.findById(req.params.id);
     if (!worker) {
-      return res.status(404).json({ message: 'Worker not found.' });
+      return res.status(404).json({ message: "Worker not found" });
     }
-
-    res.status(200).json(worker);
+    res.json(worker);
   } catch (error) {
-    console.error('Error fetching worker:', error);
-    res.status(500).json({ message: 'Server error.' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
