@@ -158,7 +158,7 @@ export const getLoggedInUser  = async (req, res) => {
 };
 
 // Store Selected Package
-export const storeSelectedPackage  = async (req, res) => {
+export const storeSelectedPackage = async (req, res) => {
   const { packageName } = req.body;
 
   try {
@@ -169,10 +169,18 @@ export const storeSelectedPackage  = async (req, res) => {
     const user = await User.findById(req.session.user.id);
 
     if (!user) {
-      return res.status(404).json({ message: 'User  not found' });
+      return res.status(404).json({ message: 'User not found' });
     }
 
     user.package = packageName;
+
+    // Set the price based on the package
+    if (packageName === 'Basic') {
+      user.price = 14.95;
+    } else if (packageName === 'Pro') {
+      user.price = 29.95;
+    }
+
     await user.save();
 
     res.status(200).json({ message: 'Package selection saved successfully.' });
@@ -254,37 +262,35 @@ export const getSessionData  = (req, res) => {
 };
 
 // Update User Package
-export const updateUserPackage  = async (req, res) => {
-  const { newPackage } = req.body; // Expecting the new package name from the request body
-
-  try {
-    // Check if the user is logged in
-    if (!req.session.user || !req.session.user.id) {
-      return res.status(401).json({ message: 'No user logged in' });
+  export const updateUserPackage = async (req, res) => {
+    const { newPackage } = req.body;
+  
+    try {
+      if (!req.session.user || !req.session.user.id) {
+        return res.status(401).json({ message: 'No user logged in' });
+      }
+  
+      const user = await User.findById(req.session.user.id);
+  
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      // Allow upgrade only from Basic to Pro
+      if (user.package === 'Basic' && newPackage === 'Pro') {
+        user.package = newPackage;
+        user.price = 29.95; // Update price for Pro package
+        await user.save();
+  
+        return res.status(200).json({ message: 'Package updated successfully.', user });
+      } else {
+        return res.status(400).json({ message: 'Package update is only allowed from Basic to Pro.' });
+      }
+    } catch (error) {
+      console.error('Error updating package:', error);
+      res.status(500).json({ message: 'Failed to update package.' });
     }
-
-    // Find the user by ID
-    const user = await User.findById(req.session.user.id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User  not found' });
-    }
-
-    // Check if the current package is 'Basic'
-    if (user.package !== 'Basic') {
-      return res.status(400).json({ message: 'Package update is only allowed for Basic users.' });
-    }
-
-    // Update the user's package
-    user.package = newPackage; // Set the new package
-    await user.save(); // Save the updated user
-
-    res.status(200).json({ message: 'Package updated successfully.', user });
-  } catch (error) {
-    console.error('Error updating package:', error);
-    res.status(500).json({ message: 'Failed to update package.' });
-  }
-};
+  };
 
 // Function to upload user image
 export const uploadUserImage = async (req, res) => {
