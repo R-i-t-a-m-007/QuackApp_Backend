@@ -337,7 +337,7 @@ export const getAllUsers = async (req, res) => {
 
 export const updateUserDetails = async (req, res) => {
   const { userId } = req.params;
-  const { username, email, phone, address, postcode, userPackage } = req.body;
+  const { username, email, phone, address, postcode } = req.body;
   console.log("Received userId:", userId); 
   
   try {
@@ -353,7 +353,6 @@ export const updateUserDetails = async (req, res) => {
     user.phone = phone || user.phone;
     user.address = address || user.address;
     user.postcode = postcode || user.postcode;
-    user.package = userPackage || user.package;
 
     await user.save(); // Save the updated user
 
