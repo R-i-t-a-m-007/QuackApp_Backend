@@ -1,10 +1,9 @@
 import express from 'express';
-import { registerUser , loginUser , getLoggedInUser , logoutUser , requestOtp, resetPassword, storeSelectedPackage,getSessionData,updateUserPackage, uploadUserImage, getAllUsers, updateUserDetails, deleteUser, getUserById } from '../controllers/authController.js';
+import { registerUser , loginUser , getLoggedInUser , logoutUser , requestOtp, resetPassword, storeSelectedPackage,getSessionData,updateUserPackage, uploadUserImage, getAllUsers, updateUserDetails, deleteUser, getUserById, getTotalPrice } from '../controllers/authController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// Routes
 router.post('/register', registerUser );
 router.post('/login', loginUser );
 router.get('/me', getLoggedInUser );
@@ -19,6 +18,7 @@ router.get('/users', getAllUsers); // API to get all users
 router.put('/update/:userId', updateUserDetails);
 router.delete('/users/:userId', deleteUser);
 router.get("/users/:id",getUserById);
+router.get('/total-price', getTotalPrice);
 
 
 
