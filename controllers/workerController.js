@@ -355,6 +355,8 @@ export const updateWorker = async (req, res) => {
 // Fetch a single worker by ID
 export const getWorkerById = async (req, res) => {
   const { workerId } = req.params;
+  console.log(workerId);
+  
 
   try {
     const worker = await Worker.findById(workerId);
