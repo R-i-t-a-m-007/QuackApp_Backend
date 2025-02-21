@@ -12,8 +12,8 @@ import {
   getJobById,
   inviteWorkersToJob, // New import for inviting workers
   getInvitedJobsForWorker, // New import for fetching invited jobs
-  respondToJobInvitation, // New import for responding to job invitations
-  getTotalJobsCount
+  respondToJobInvitation,
+  getTotalJobCount, // New import for responding to job invitations
 } from '../controllers/jobController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 const router = express.Router();
@@ -32,6 +32,6 @@ router.get('/:id', sessionMiddleware, getJobById); // New route to fetch a job b
 router.post('/invite/:jobId', sessionMiddleware, inviteWorkersToJob); // Invite workers to a job
 router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
 router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
-router.get('/total-count', getTotalJobsCount);
+router.get('/total-count', getTotalJobCount);
 
 export default router;
