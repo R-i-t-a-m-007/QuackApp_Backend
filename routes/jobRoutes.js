@@ -12,11 +12,10 @@ import {
   getJobById,
   inviteWorkersToJob, // New import for inviting workers
   getInvitedJobsForWorker, // New import for fetching invited jobs
-  respondToJobInvitation // New import for responding to job invitations
+  respondToJobInvitation, // New import for responding to job invitations
+  getTotalJobsCount
 } from '../controllers/jobController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
-import { getTotalJobsCount } from '../controllers/jobController';
-
 const router = express.Router();
 
 router.post('/create', sessionMiddleware, createJob); // Route to create a job
