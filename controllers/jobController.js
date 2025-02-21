@@ -314,3 +314,14 @@ export const respondToJobInvitation = async (req, res) => {
     res.status(500).json({ message: 'Server error while responding to job invitation.' });
   }
 };
+
+// Get the total count of jobs
+export const getTotalJobsCount = async (req, res) => {
+  try {
+    const totalJobsCount = await Job.countDocuments(); // Get the total number of jobs
+    res.status(200).json({ totalJobsCount });
+  } catch (error) {
+    console.error('Error fetching total jobs count:', error);
+    res.status(500).json({ message: 'Server error while fetching total jobs count.' });
+  }
+};

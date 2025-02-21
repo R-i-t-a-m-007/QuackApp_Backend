@@ -253,3 +253,14 @@ export const uploadCompanyImage = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
+// Get the total number of companies
+export const getCompanyCount = async (req, res) => {
+  try {
+    const count = await CompanyList.countDocuments();
+    res.status(200).json({ count });
+  } catch (error) {
+    console.error('Error fetching company count:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
