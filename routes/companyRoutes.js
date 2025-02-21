@@ -12,7 +12,7 @@ router.put('/:companyId', sessionMiddleware, updateCompany);
 router.delete('/:id', sessionMiddleware, deleteCompany);
 router.get('/company', getLoggedInCompany);
 router.post('/:companyId/upload-image', sessionMiddleware, uploadCompanyImage); // New route for image upload
-router.get('/count', sessionMiddleware, getCompanyCount);
+router.get('/count', getCompanyCount);
 
 
 
