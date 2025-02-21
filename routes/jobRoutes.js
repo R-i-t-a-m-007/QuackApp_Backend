@@ -18,6 +18,7 @@ import {
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 const router = express.Router();
 
+router.get('/total-count', getTotalJobCount);
 router.post('/create', sessionMiddleware, createJob); // Route to create a job
 router.get('/worker', sessionMiddleware, getJobsForWorker); // Route to fetch jobs for the logged-in worker
 router.get('/completed', sessionMiddleware, getCompletedJobs); // Route to fetch completed jobs for the logged-in worker
@@ -32,6 +33,5 @@ router.get('/:id', sessionMiddleware, getJobById); // New route to fetch a job b
 router.post('/invite/:jobId', sessionMiddleware, inviteWorkersToJob); // Invite workers to a job
 router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
 router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
-router.get('/total-count', getTotalJobCount);
 
 export default router;
