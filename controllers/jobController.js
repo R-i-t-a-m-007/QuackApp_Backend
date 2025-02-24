@@ -343,3 +343,24 @@ export const getAllJobs = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching all jobs.' });
   }
 };
+
+// Fetch job details by ID
+export const getJobDetailsById = async (req, res) => {
+  const { id } = req.params; // Get job ID from request parameters
+
+  try {
+    const job = await Job.findById(id)
+      .populate('workers', 'name email phone') // Populate worker details
+      .populate('invitedWorkers', 'name email phone'); // Populate invited worker details
+
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    res.status(200).json(job); // Return the job details
+  } catch (error) {
+    console.error('Error fetching job details:', error);
+    res.status(500).json({ message: 'Server error while fetching job details.' });
+  }
+};
+

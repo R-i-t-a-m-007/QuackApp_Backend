@@ -14,12 +14,14 @@ import {
   getInvitedJobsForWorker, // New import for fetching invited jobs
   respondToJobInvitation,
   getTotalJobCount,
-  getAllJobs, // New import for responding to job invitations
+  getAllJobs,
+  getJobDetailsById, // New import for responding to job invitations
 } from '../controllers/jobController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 const router = express.Router();
 
 router.get('/all-jobs', getAllJobs);
+router.get('/jobs/:id', getJobDetailsById);
 router.get('/total-count', getTotalJobCount);
 router.post('/create', sessionMiddleware, createJob); // Route to create a job
 router.get('/worker', sessionMiddleware, getJobsForWorker); // Route to fetch jobs for the logged-in worker
