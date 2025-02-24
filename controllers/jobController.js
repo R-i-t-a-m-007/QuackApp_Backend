@@ -329,3 +329,17 @@ export const getTotalJobCount = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching job count.' });
   }
 };
+
+// Fetch all jobs
+export const getAllJobs = async (req, res) => {
+  try {
+    const jobs = await Job.find().populate('workers invitedWorkers'); // Populate workers and invitedWorkers for detailed info
+    if (!jobs || jobs.length === 0) {
+      return res.status(404).json({ message: 'No jobs found' });
+    }
+    res.status(200).json(jobs);
+  } catch (error) {
+    console.error('Error fetching all jobs:', error);
+    res.status(500).json({ message: 'Server error while fetching all jobs.' });
+  }
+};
