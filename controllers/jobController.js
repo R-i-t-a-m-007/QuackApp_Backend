@@ -364,10 +364,6 @@ export const getJobDetailsById = async (req, res) => {
   }
 };
 
-// controllers/jobController.js
-
-import Job from "../models/Job.js";
-
 // Update Job
 export const updateJob = async (req, res) => {
   const { id } = req.params;
