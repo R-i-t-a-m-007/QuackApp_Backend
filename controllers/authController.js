@@ -385,7 +385,7 @@ export const updateUserDetails = async (req, res) => {
     user.postcode = postcode || user.postcode;
 
     await user.save(); // Save the updated user
-    user.activities.push({ timestamp: new Date(), message: 'User  updated their details.' });
+    user.activities.push({ timestamp: new Date(), message: 'User  updated their details' });
     await user.save();
 
     return res.status(200).json({ message: 'User details updated successfully' });
