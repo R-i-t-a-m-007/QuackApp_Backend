@@ -303,7 +303,7 @@ export const updateUserPackage = async (req, res) => {
       user.package = newPackage;
       user.price = 29.95; // Update price for Pro package
       await user.save();
-      user.activities.push({ timestamp: new Date(), message: 'User  updated their details.' });
+      user.activities.push({ timestamp: new Date(), message: 'User  updated their package.' });
       await user.save();
 
       return res.status(200).json({ message: 'Package updated successfully.', user });
@@ -385,6 +385,8 @@ export const updateUserDetails = async (req, res) => {
     user.postcode = postcode || user.postcode;
 
     await user.save(); // Save the updated user
+    user.activities.push({ timestamp: new Date(), message: 'User  updated their details.' });
+    await user.save();
 
     return res.status(200).json({ message: 'User details updated successfully' });
   } catch (error) {
