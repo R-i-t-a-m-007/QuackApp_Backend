@@ -63,10 +63,13 @@ export const registerUser  = async (req, res) => {
       userCode, // Include userCode
     });
 
-    await newUser .save();
+    await newUser.save();
+
+    newUser.activities.push({ timestamp: new Date(), message: 'User  registered.' });
+    await newUser.save();
 
     // Set session for the newly registered user
-    req.session.user = { id: newUser ._id, username: newUser .username };
+    req.session.user = { id: newUser._id, username: newUser.username };
 
     // Send a welcome email
     const subject = 'Successful Registration';
@@ -113,6 +116,8 @@ export const loginUser  = async (req, res) => {
 
     // Set session
     req.session.user = { id: user._id, username: user.username,userCode: user.userCode };
+    user.activities.push({ timestamp: new Date(), message: 'User logged in.' });
+    await user.save();
 
     // Generate JWT
     const payload = { id: user._id, username: user.username,userCode: user.userCode };
@@ -126,12 +131,29 @@ export const loginUser  = async (req, res) => {
 };
 
 // Logout User
-export const logoutUser  = (req, res) => {
-  req.session.destroy((err) => {
+export const logoutUser  = async (req, res) => {
+  const userId = req.session.user ? req.session.user.id : null; // Get user ID from session
+
+  req.session.destroy(async (err) => {
     if (err) {
       console.error('Error destroying session:', err);
       return res.status(500).json({ message: 'Error logging out.' });
     }
+
+    if (userId) {
+      try {
+        // Find the user by ID
+        const user = await User.findById(userId);
+        if (user) {
+          // Log activity
+          user.activities.push({ timestamp: new Date(), message: 'User  logged out.' });
+          await user.save(); // Save the updated user with the new activity
+        }
+      } catch (error) {
+        console.error('Error logging activity on logout:', error);
+      }
+    }
+
     res.clearCookie('connect.sid'); // Clear the session cookie
     res.status(200).json({ message: 'Logout successful.' });
   });
@@ -280,6 +302,8 @@ export const updateUserPackage = async (req, res) => {
     if (user.package === 'Basic' && newPackage === 'Pro') {
       user.package = newPackage;
       user.price = 29.95; // Update price for Pro package
+      await user.save();
+      user.activities.push({ timestamp: new Date(), message: 'User  updated their details.' });
       await user.save();
 
       return res.status(200).json({ message: 'Package updated successfully.', user });

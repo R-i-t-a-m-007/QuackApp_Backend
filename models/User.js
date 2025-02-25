@@ -12,12 +12,13 @@ const UserSchema = new mongoose.Schema({
     enum: ['Basic', 'Pro'], 
     default: null,
   },
-  price: { type: Number, default: 0 }, // New price field
+  price: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   otp: { type: String },
   otpExpire: { type: Date },
   image: { type: String, default: null },
   userCode: { type: String, required: true },
+  activities: { type: [{ timestamp: Date, message: String }], default: [] }, // New activities field
 });
 
 export default mongoose.model('User ', UserSchema);
