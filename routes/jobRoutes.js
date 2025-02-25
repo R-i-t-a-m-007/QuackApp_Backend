@@ -16,12 +16,14 @@ import {
   getTotalJobCount,
   getAllJobs,
   getJobDetailsById,
-  updateJob, // New import for responding to job invitations
+  updateJob,
+  deleteJob, // New import for responding to job invitations
 } from '../controllers/jobController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 const router = express.Router();
 
 router.put("/update/:id", updateJob);
+router.delete("/job/:id", deleteJob);
 router.get('/all-jobs', getAllJobs);
 router.get('/jobs/:id', getJobDetailsById);
 router.get('/total-count', getTotalJobCount);
