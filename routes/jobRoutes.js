@@ -15,11 +15,13 @@ import {
   respondToJobInvitation,
   getTotalJobCount,
   getAllJobs,
-  getJobDetailsById, // New import for responding to job invitations
+  getJobDetailsById,
+  updateJob, // New import for responding to job invitations
 } from '../controllers/jobController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 const router = express.Router();
 
+router.put("/update/:id", updateJob);
 router.get('/all-jobs', getAllJobs);
 router.get('/jobs/:id', getJobDetailsById);
 router.get('/total-count', getTotalJobCount);

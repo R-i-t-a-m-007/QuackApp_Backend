@@ -364,3 +364,33 @@ export const getJobDetailsById = async (req, res) => {
   }
 };
 
+// controllers/jobController.js
+
+import Job from "../models/Job.js";
+
+// Update Job
+export const updateJob = async (req, res) => {
+  const { id } = req.params;
+  const { title, description, location, workersRequired } = req.body;
+
+  try {
+    const updatedJob = await Job.findByIdAndUpdate(
+      id,
+      { title, description, location, workersRequired },
+      {
+        new: true, // Return the updated document
+        runValidators: true, // Validate before updating
+      }
+    );
+
+    if (!updatedJob) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    res.status(200).json(updatedJob);
+  } catch (error) {
+    console.error("Error updating job:", error);
+    res.status(500).json({ message: "Failed to update job" });
+  }
+};
+
