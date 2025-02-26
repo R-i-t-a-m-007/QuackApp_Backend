@@ -425,6 +425,8 @@ export const updateWorkerAvailability = async (req, res) => {
     }
 
     res.status(200).json({ message: 'Worker availability updated successfully.', worker: updatedWorker });
+    updateWorker.activities.push({timestamp: new Date(), message:"Worker has marked his availability"});
+    await updateWorker.save();
   } catch (error) {
     console.error('Error updating worker availability:', error);
     res.status(500).json({ message: 'Server error.' });
