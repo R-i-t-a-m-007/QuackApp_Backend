@@ -169,7 +169,8 @@ export const inviteWorkerToJob = async (req, res) => {
     // Add the job ID to the worker's invitedJobs array
     worker.invitedJobs.push(jobId);
     await worker.save();
-
+    worker.activities.push({timestamp: new Date(), message: "Worker has been invited for the job"})
+    await worker.save();
     // Add the worker ID to the job's invitedWorkers array
     job.invitedWorkers.push(workerId);
     await job.save();
@@ -224,6 +225,8 @@ export const respondToJobInvitation = async (req, res) => {
       job.workers.push(workerId);
       // Remove worker from invitedWorkers
       job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId.toString());
+      worker.activities.push({timestamp: new Date(), message:"Worker has accepted a job"});
+      await worker.save();
       // Check if the job is now filled
       if (job.workers.length >= job.workersRequired) {
         job.jobStatus = true; // Mark job as filled
@@ -231,6 +234,8 @@ export const respondToJobInvitation = async (req, res) => {
     } else if (response === 'decline') {
       // Remove worker from invitedJobs
       worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== jobId.toString());
+      worker.activities.push({timestamp: new Date(), message:"Worker has declined a job"});
+      await worker.save();
     }
 
     await job.save();
@@ -346,6 +351,8 @@ export const updateWorker = async (req, res) => {
     }
 
     res.status(200).json({ message: 'Worker updated successfully!', worker: updatedWorker });
+    worker.activities.push({timestamp: new Date(), message:"Worker has been updated"});
+    await worker.save();
   } catch (error) {
     console.error('Error updating worker:', error);
     res.status(500).json({ message: 'Server error.' });
@@ -389,6 +396,8 @@ export const loginWorker = async (req, res) => {
     req.session.worker = { _id: worker._id, userCode: worker.userCode };
 
     res.status(200).json({ message: 'Login successful.', worker });
+    worker.activities.push({timestamp: new Date(), message:"Worker has logged in"});
+    await worker.save();
   } catch (error) {
     console.error('Error logging in worker:', error);
     res.status(500).json({ message: 'Server error.' });
@@ -424,19 +433,34 @@ export const updateWorkerAvailability = async (req, res) => {
 
 // Logout worker
 export const logoutWorker = async (req, res) => {
+  const workerId = req.session.worker ? req.session.worker._id: null;
+
   try {
     if (!req.session.worker) {
       return res.status(401).json({ message: 'No worker logged in.' });
     }
 
-    req.session.destroy((err) => {
+    req.session.destroy(async (err) => {
       if (err) {
         console.error('Error during logout:', err);
         return res.status(500).json({ message: 'Logout failed.' });
       }
+      if(workerId){
+        try{
+          const worker = await Worker.findById(workerId);
+          if(worker){
+            worker.activities.push({timestamp: new Date(), message:"Worker has logged out"});
+            await worker.save();
+          }
+        }
+        catch(error){
+          console.error('Error logging activity on logout:', error);
+        }
+      }
 
       res.clearCookie('connect.sid'); // Clear session cookie
       res.status(200).json({ message: 'Logged out successfully.' });
+      
     });
   } catch (error) {
     console.error('Error during logout:', error);
@@ -586,8 +610,11 @@ export const updateWorkerDetails = async (req, res) => {
     worker.address = address || worker.address;
 
     await worker.save(); // Save the updated worker
+    worker.activities.push({timestamp: new Date(), message:"Worker has been updated"});
+    await worker.save();
 
     return res.status(200).json({ message: "Worker details updated successfully" });
+    
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

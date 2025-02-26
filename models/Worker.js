@@ -17,7 +17,8 @@ const workerSchema = new mongoose.Schema({
   image: { type: String, default: null }, // Field to store the image as a base64 string
   userCode: { type: String, required: true }, // New field for user code
   approved: { type: Boolean, default: false }, // Field to track approval status
-  invitedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }] // Track invited jobs
+  invitedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }], // Track invited jobs
+  activities: { type: [{ timestamp: Date, message: String }], default: [] }, // New activities field
 });
 
 const Worker = mongoose.model('Worker', workerSchema);
