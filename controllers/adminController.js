@@ -43,30 +43,37 @@ export const registerAdmin = async (req, res) => {
 // @desc    Admin login
 // @route   POST /api/admin/login
 // @access  Public
+// @desc    Admin login
+// @route   POST /api/admin/login
+// @access  Public
 export const loginAdmin = async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    // Check if admin exists
-    const admin = await Admin.findOne({ email });
-    if (admin) {
-      // Compare passwords
-      const isMatch = await bcrypt.compare(password, admin.password);
-
-      if (isMatch) {
-        res.json({
-          _id: admin._id,
-          name: admin.name,
-          email: admin.email,
-          token: generateToken(admin._id),
-        });
+    const { email, password } = req.body;
+  
+    try {
+      // Normalize email to lowercase
+      const normalizedEmail = email.toLowerCase();
+  
+      // Check if admin exists
+      const admin = await Admin.findOne({ email: normalizedEmail });
+      if (admin) {
+        // Compare passwords
+        const isMatch = await bcrypt.compare(password, admin.password);
+  
+        if (isMatch) {
+          res.json({
+            _id: admin._id,
+            name: admin.name,
+            email: admin.email,
+            token: generateToken(admin._id),
+          });
+        } else {
+          res.status(401).json({ message: 'Invalid credentials' });
+        }
       } else {
         res.status(401).json({ message: 'Invalid credentials' });
       }
-    } else {
-      res.status(401).json({ message: 'Invalid credentials' });
+    } catch (error) {
+      res.status(500).json({ message: 'Server Error', error: error.message });
     }
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
-};
+  };
+  
