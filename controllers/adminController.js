@@ -38,12 +38,6 @@ export const registerAdmin = async (req, res) => {
   }
 };
 
-// @desc    Admin login
-// @route   POST /api/admin/login
-// @access  Public
-// @desc    Admin login
-// @route   POST /api/admin/login
-// @access  Public
 export const loginAdmin = async (req, res) => {
     const { email, password } = req.body;
   
@@ -75,3 +69,52 @@ export const loginAdmin = async (req, res) => {
     }
   };
   
+  // Get Admin Profile
+export const getAdminProfile = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin._id).select('-password');
+    if (admin) {
+      res.json({
+        _id: admin._id,
+        name: admin.name,
+        email: admin.email,
+      });
+    } else {
+      res.status(404).json({ message: 'Admin not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// Update Admin Profile
+export const updateAdminProfile = async (req, res) => {
+  const { name, email, password } = req.body;
+
+  try {
+    const admin = await Admin.findById(req.admin._id);
+
+    if (admin) {
+      admin.name = name || admin.name;
+      admin.email = email || admin.email;
+
+      if (password) {
+        const salt = await bcrypt.genSalt(10);
+        admin.password = await bcrypt.hash(password, salt);
+      }
+
+      const updatedAdmin = await admin.save();
+
+      res.json({
+        _id: updatedAdmin._id,
+        name: updatedAdmin.name,
+        email: updatedAdmin.email,
+        token: generateToken(updatedAdmin._id),
+      });
+    } else {
+      res.status(404).json({ message: 'Admin not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
