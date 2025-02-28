@@ -5,13 +5,11 @@ import bcrypt from 'bcryptjs';
 // Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
+    expiresIn: '1h',
   });
 };
 
-// @desc    Register new admin
-// @route   POST /api/admin/register
-// @access  Public
+
 export const registerAdmin = async (req, res) => {
   const { name, email, password } = req.body;
 
