@@ -1,3 +1,5 @@
+import jwt from 'jsonwebtoken';
+
 const adminMiddleware = async (req, res, next) => {
   const token = req.header("Authorization")?.split(" ")[1]; // Extract token from "Bearer ..."
   
