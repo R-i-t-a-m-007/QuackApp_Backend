@@ -27,3 +27,5 @@ const adminMiddleware = async (req, res, next) => {
     return res.status(401).json({ message: "Token is not valid." });
   }
 };
+
+export default adminMiddleware;
