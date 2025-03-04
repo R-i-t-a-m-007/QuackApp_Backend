@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import Admin from "../models/adminModel.js"; // Import the Admin model
+import Admin from '../models/Admin.js'; // Import the Admin model
 
 const adminMiddleware = async (req, res, next) => {
   const token = req.header("Authorization")?.split(" ")[1]; // Extract token from "Bearer ..."
