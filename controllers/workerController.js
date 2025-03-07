@@ -4,6 +4,7 @@ import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
+import crypto from 'crypto';
 
 // Function to send email to the worker with credentials
 const sendWorkerEmail = async (email, name, role, userCode, password) => {
