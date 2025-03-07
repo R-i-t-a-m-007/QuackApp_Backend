@@ -38,7 +38,7 @@ app.use(
 // Configure CORS
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: 'https://quackapp-admin.netlify.app',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true, // Allow cookies
   })
