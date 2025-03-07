@@ -420,7 +420,7 @@ export const requestPasswordReset = async (req, res) => {
     await user.save();
 
     // Send email with reset link
-    const resetLink = `https://your-app-url.com/reset-password/${resetToken}`;
+    const resetLink = `https://quackapp-admin.netlify.app/reset-password/${resetToken}`;
     const subject = 'Password Reset Request';
     const text = `You requested a password reset. Click the link to reset your password: ${resetLink}`;
 
