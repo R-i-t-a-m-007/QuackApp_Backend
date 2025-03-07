@@ -19,7 +19,9 @@ import {
   getAllWorkers,
   updateWorkerDetails,
   deleteWorker,
-  getWorkerById
+  getWorkerById,
+  requestWorkerPasswordReset,
+  resetWorkerPassword
 } from '../controllers/workerController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
@@ -48,6 +50,8 @@ router.get('/workers',getAllWorkers);
 router.put("/update/:workerId", updateWorkerDetails);
 router.get("/workers/:id",getWorkerById);
 router.delete('/workers/:workerId', deleteWorker);
+router.post('/forgot-password', requestWorkerPasswordReset);
+router.post('/reset-password', resetWorkerPassword);
 
 
 export default router;

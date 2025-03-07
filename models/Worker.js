@@ -1,4 +1,3 @@
-// models/Worker.js
 import mongoose from 'mongoose';
 
 const workerSchema = new mongoose.Schema({
@@ -14,11 +13,13 @@ const workerSchema = new mongoose.Schema({
     date: { type: Date, required: true },
     shift: { type: String, enum: ['Morning', 'Afternoon', 'Evening'], required: true }
   }],
-  image: { type: String, default: null }, // Field to store the image as a base64 string
-  userCode: { type: String, required: true }, // New field for user code
-  approved: { type: Boolean, default: false }, // Field to track approval status
-  invitedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }], // Track invited jobs
-  activities: { type: [{ timestamp: Date, message: String }], default: [] }, // New activities field
+  image: { type: String, default: null },
+  userCode: { type: String, required: true },
+  approved: { type: Boolean, default: false },
+  invitedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],
+  activities: { type: [{ timestamp: Date, message: String }], default: [] },
+  resetToken: { type: String }, // New field for password reset token
+  resetTokenExpire: { type: Date }, // New field for token expiration
 });
 
 const Worker = mongoose.model('Worker', workerSchema);

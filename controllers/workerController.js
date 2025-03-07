@@ -76,6 +76,39 @@ The QuackApp Team`,
   }
 };
 
+const sendPasswordResetEmail = async (email, name, resetLink) => {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail', // Use your email service
+    auth: {
+      user: process.env.EMAIL_USER, // Your email
+      pass: process.env.EMAIL_PASS, // Your email password or app password
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Password Reset Request',
+    text: `Hello ${name},
+
+You requested a password reset. Click the link below to reset your password:
+
+${resetLink}
+
+If you did not request this, please ignore this email.
+
+Best regards,
+The QuackApp Team`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Password reset email sent successfully to:', email);
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+  }
+};
+
 // Add a new worker
 export const addWorker = async (req, res) => {
   const { name, email, phone, role, department, address, joiningDate, password, userCode } = req.body;
@@ -643,3 +676,55 @@ export const deleteWorker = async (req, res) => {
   }
 };
 
+export const requestWorkerPasswordReset = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const worker = await Worker.findOne({ email });
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    // Generate a reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    worker.resetToken = resetToken;
+    worker.resetTokenExpire = Date.now() + 3600000; // Token valid for 1 hour
+    await worker.save();
+
+    // Send email with reset link
+    const resetLink = `https://quackapp-admin.netlify.app/reset-password/${resetToken}`;
+    const subject = 'Password Reset Request';
+    const text = `You requested a password reset. Click the link to reset your password: ${resetLink}`;
+
+    await sendEmail(worker.email, subject, text);
+
+    res.status(200).json({ message: 'Password reset link sent to your email.' });
+  } catch (error) {
+    console.error('Error in requesting password reset:', error);
+    res.status(500).json({ message: 'Server error while processing request.' });
+  }
+};
+
+// Reset Password
+export const resetWorkerPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    const worker = await Worker.findOne({ resetToken: token, resetTokenExpire: { $gt: Date.now() } });
+
+    if (!worker) {
+      return res.status(400).json({ message: 'Invalid or expired token.' });
+    }
+
+    // Hash the new password
+    worker.password = await bcrypt.hash(newPassword, 10);
+    worker.resetToken = undefined; // Clear reset token
+    worker.resetTokenExpire = undefined; // Clear expiration
+    await worker.save();
+
+    res.status(200).json({ message: 'Password has been reset successfully.' });
+  } catch (error) {
+    console.error('Error in resetting password:', error);
+    res.status(500).json({ message: 'Server error while resetting password.' });
+  }
+};
