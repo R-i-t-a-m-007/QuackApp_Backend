@@ -241,40 +241,6 @@ export const requestOtp  = async (req, res) => {
   }
 };
 
-// Reset Password
-export const resetPassword  = async (req, res) => {
-  const { email, otp, newPassword } = req.body;
-  console.log('resetPassword endpoint hit'); // Log when the endpoint is accessed
-
-  try {
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      console.log('User  not found for email:', email); // Log if user is not found
-      return res.status(404).json({ message: 'Email not found.' });
-    }
-
-    console.log('User  OTP from DB:', user.otp); // Log the OTP stored in the database
-    console.log('Received OTP:', otp); // Log the OTP received from the request
-    console.log('OTP Expiry:', user.otpExpire); // Log the OTP expiry time
-
-    if (user.otp !== otp || user.otpExpire < Date.now()) {
-      console.log('OTP validation failed.'); // Log if OTP validation fails
-      return res.status(400).json({ message: 'Invalid or expired OTP.' });
-    }
-
-    user.password = await bcrypt.hash(newPassword, 10);
-    user.otp = null; // Clear OTP after use
-    user.otpExpire = null; // Clear OTP expiration
-    await user.save();
-
-    res.status(200).json({ message: 'Password has been reset successfully.' });
-  } catch (error) {
-    console.error('Error in resetting password:', error);
-    res.status(500).json({ message: 'Server error. Please try again later.' });
-  }
-};
-
 export const getSessionData  = (req, res) => {
   if (req.session.user) {
     return res.status(200).json({ user: req.session.user });
@@ -434,5 +400,59 @@ export const getTotalPrice = async (req, res) => {
   } catch (error) {
     console.error('Error calculating total price:', error);
     res.status(500).json({ message: 'Failed to calculate total price.' });
+  }
+};
+
+// Request Password Reset
+export const requestPasswordReset = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Generate a reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetToken = resetToken;
+    user.resetTokenExpire = Date.now() + 3600000; // Token valid for 1 hour
+    await user.save();
+
+    // Send email with reset link
+    const resetLink = `https://your-app-url.com/reset-password/${resetToken}`;
+    const subject = 'Password Reset Request';
+    const text = `You requested a password reset. Click the link to reset your password: ${resetLink}`;
+
+    await sendEmail(user.email, subject, text); // Use your sendEmail function
+
+    res.status(200).json({ message: 'Password reset link sent to your email.' });
+  } catch (error) {
+    console.error('Error in requesting password reset:', error);
+    res.status(500).json({ message: 'Server error while processing request.' });
+  }
+};
+
+// Reset Password
+export const resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ resetToken: token, resetTokenExpire: { $gt: Date.now() } });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token.' });
+    }
+
+    // Hash the new password
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetToken = undefined; // Clear reset token
+    user.resetTokenExpire = undefined; // Clear expiration
+    await user.save();
+
+    res.status(200).json({ message: 'Password has been reset successfully.' });
+  } catch (error) {
+    console.error('Error in resetting password:', error);
+    res.status(500).json({ message: 'Server error while resetting password.' });
   }
 };

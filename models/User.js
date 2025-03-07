@@ -16,9 +16,11 @@ const UserSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   otp: { type: String },
   otpExpire: { type: Date },
+  resetToken: { type: String }, // New field for password reset token
+  resetTokenExpire: { type: Date }, // New field for token expiration
   image: { type: String, default: null },
   userCode: { type: String, required: true },
-  activities: { type: [{ timestamp: Date, message: String }], default: [] }, // New activities field
+  activities: { type: [{ timestamp: Date, message: String }], default: [] },
 });
 
-export default mongoose.model('User ', UserSchema);
+export default mongoose.model('User', UserSchema);
