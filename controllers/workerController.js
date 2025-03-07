@@ -697,7 +697,7 @@ export const requestWorkerPasswordReset = async (req, res) => {
     const subject = 'Password Reset Request';
     const text = `You requested a password reset. Click the link to reset your password: ${resetLink}`;
 
-    await sendEmail(worker.email, subject, text);
+    await sendPasswordResetEmail(worker.email, subject, text);
 
     res.status(200).json({ message: 'Password reset link sent to your email.' });
   } catch (error) {
