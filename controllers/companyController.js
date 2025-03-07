@@ -2,6 +2,7 @@ import CompanyList from '../models/CompanyList.js';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
+import crypto from 'crypto';
 
 // Helper to generate a random company code
 const generateCompCode = () => `COMP${Math.floor(1000 + Math.random() * 9000)}`;
@@ -36,6 +37,39 @@ The QuackApp Team`,
     console.log('Email sent successfully');
   } catch (error) {
     console.error('Error sending email:', error);
+  }
+};
+
+const sendPasswordResetEmail = async (email, name, resetLink) => {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail', // Use your email service
+    auth: {
+      user: process.env.EMAIL_USER, // Your email
+      pass: process.env.EMAIL_PASS, // Your email password or app password
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Password Reset Request',
+    text: `Hello ${name},
+
+You requested a password reset. Click the link below to reset your password:
+
+${resetLink}
+
+If you did not request this, please ignore this email.
+
+Best regards,
+The QuackApp Team`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Password reset email sent successfully to:', email);
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
   }
 };
 
@@ -262,5 +296,57 @@ export const getCompanyCount = async (req, res) => {
   } catch (error) {
     console.error('Error fetching company count:', error);
     res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+export const requestPasswordReset = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const company = await CompanyList.findOne({ email });
+    if (!company) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Generate a reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    company.resetToken = resetToken;
+    company.resetTokenExpire = Date.now() + 3600000; // Token valid for 1 hour
+    await company.save();
+
+    // Send email with reset link
+    const resetLink = `https://quackapp-admin.netlify.app/reset-company-password/${resetToken}`;
+    const subject = 'Password Reset Request';
+    const text = `You requested a password reset. Click the link to reset your password: ${resetLink}`;
+
+    await sendPasswordResetEmail(company.email, subject, text); // Use your sendEmail function
+
+    res.status(200).json({ message: 'Password reset link sent to your email.' });
+  } catch (error) {
+    console.error('Error in requesting password reset:', error);
+    res.status(500).json({ message: 'Server error while processing request.' });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ resetToken: token, resetTokenExpire: { $gt: Date.now() } });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token.' });
+    }
+
+    // Hash the new password
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetToken = undefined; // Clear reset token
+    user.resetTokenExpire = undefined; // Clear expiration
+    await user.save();
+
+    res.status(200).json({ message: 'Password has been reset successfully.' });
+  } catch (error) {
+    console.error('Error in resetting password:', error);
+    res.status(500).json({ message: 'Server error while resetting password.' });
   }
 };
