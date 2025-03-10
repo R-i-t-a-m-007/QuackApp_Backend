@@ -110,6 +110,35 @@ The QuackApp Team`,
   }
 };
 
+const sendJobRequestEmail = async (email, name, jobTitle) => {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'You\'ve been invited to a job!',
+    text: `Hello ${name},
+
+You have been invited to the job titled "${jobTitle}". Please check your app for more details.
+
+Best regards,
+The QuackApp Team`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully to worker:', email);
+  } catch (error) {
+    console.error('Error sending email to worker:', error);
+  }
+};
+
 // Add a new worker
 export const addWorker = async (req, res) => {
   const { name, email, phone, role, department, address, joiningDate, password, userCode } = req.body;
@@ -204,11 +233,15 @@ export const inviteWorkerToJob = async (req, res) => {
     // Add the job ID to the worker's invitedJobs array
     worker.invitedJobs.push(jobId);
     await worker.save();
-    worker.activities.push({timestamp: new Date(), message: "Worker has been invited for the job"})
+    worker.activities.push({ timestamp: new Date(), message: "Worker has been invited for the job" });
     await worker.save();
+
     // Add the worker ID to the job's invitedWorkers array
     job.invitedWorkers.push(workerId);
     await job.save();
+
+    // Send an email to the worker
+    await sendJobRequestEmail(worker.email, worker.name, job.title); // Assuming worker has email and name fields
 
     res.status(200).json({ message: 'Worker invited successfully!', worker });
   } catch (error) {
