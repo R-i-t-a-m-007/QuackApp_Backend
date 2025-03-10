@@ -394,10 +394,21 @@ export const getUserById = async (req, res) => {
 export const getTotalPrice = async (req, res) => {
   try {
     const total = await User.aggregate([
-      { $group: { _id: null, totalPrice: { $sum: "$price" } } }
+      { 
+        $group: { 
+          _id: null, 
+          totalPrice: { $sum: "$price" } 
+        } 
+      },
+      {
+        $project: {
+          totalPrice: { $round: ["$totalPrice", 2] }
+        }
+      }
     ]);
 
-    res.status(200).json({ totalPrice: total[0]?.totalPrice || 0 });
+    const roundedTotal = total[0]?.totalPrice || 0;
+    res.status(200).json({ totalPrice: roundedTotal });
   } catch (error) {
     console.error('Error calculating total price:', error);
     res.status(500).json({ message: 'Failed to calculate total price.' });
