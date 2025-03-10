@@ -115,48 +115,49 @@ export const addWorker = async (req, res) => {
   const { name, email, phone, role, department, address, joiningDate, password, userCode } = req.body;
 
   try {
-    // Check if the worker already exists
+    // First check if the user code exists in either User or Company collection
+    const userWithCode = await User.findOne({ userCode });
+    const companyWithCode = await CompanyList.findOne({ comp_code: userCode });
+    
+    if (!userWithCode && !companyWithCode) {
+      return res.status(400).json({ message: 'User/Company with this code does not exist.' });
+    }
+
+    // Check if worker already exists with this email
     const existingWorker = await Worker.findOne({ email });
     if (existingWorker) {
       return res.status(400).json({ message: 'Worker already exists with this email.' });
     }
 
-    // Log the password before hashing
-    console.log('Password before hashing:', password);
-
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log('Hashed Password:', hashedPassword); // Log the hashed password
 
-    // Check if the user or company is adding the worker
+    // Additional validation for existing users/companies (if needed)
     const userId = req.session.user ? req.session.user.id : null;
     const companyId = req.session.company ? req.session.company._id : null;
 
-    // If a user is logged in, link the worker to the user
+    // This section can be removed if not using session-based validation
     if (userId) {
       const user = await User.findById(userId);
       if (!user) {
-        return res.status(404).json({ message: 'User  not found.' });
+        return res.status(404).json({ message: 'User not found.' });
       }
-      // Check if the user code matches the user's code
       if (user.userCode !== userCode) {
-        return res.status(403).json({ message: 'User  code does not match.' });
+        return res.status(403).json({ message: 'User code does not match.' });
       }
     }
 
-    // If a company is logged in, link the worker to the company
     if (companyId) {
       const company = await CompanyList.findById(companyId);
       if (!company) {
         return res.status(404).json({ message: 'Company not found.' });
       }
-      // Check if the user code matches the company's code
       if (company.comp_code !== userCode) {
         return res.status(403).json({ message: 'Company code does not match.' });
       }
     }
 
-    // Create and save the new worker in a pending state
+    // Create new worker
     const newWorker = new Worker({
       name,
       email,
@@ -166,14 +167,14 @@ export const addWorker = async (req, res) => {
       address,
       joiningDate,
       password: hashedPassword,
-      userCode, // Include userCode
-      approved: false, // Initially set to false
-      invitedJobs: [], // Initialize invitedJobs array
+      userCode,
+      approved: false,
+      invitedJobs: [],
     });
 
     await newWorker.save();
 
-    // Send registration acknowledgment email to the worker with credentials
+    // Send registration email
     await sendWorkerEmail(email, name, role, userCode, password);
 
     res.status(201).json({ message: 'Worker registration successful. Awaiting approval.' });
