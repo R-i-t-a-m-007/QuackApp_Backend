@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import crypto from 'crypto';
 
 // Helper to generate a random company code
-const generateCompCode = () => `COMP${Math.floor(1000 + Math.random() * 9000)}`;
+const generateCompCode = () => `${Math.floor(1000 + Math.random() * 9000)}`;
 
 // Function to send email using Nodemailer
 const sendEmail = async (email, compCode, password) => {

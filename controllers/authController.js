@@ -27,7 +27,7 @@ const sendEmail = async (to, subject, text) => {
 // Function to generate a random user code
 const generateUserCode = () => {
   const randomNum = Math.floor(1000 + Math.random() * 9000); // Generate a random number between 1000 and 9999
-  return `USER${randomNum}`; // Format the user code
+  return `${randomNum}`; // Format the user code
 };
 
 // Register User
