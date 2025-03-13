@@ -24,9 +24,17 @@ const sendEmail = async (to, subject, text) => {
   return transporter.sendMail(mailOptions);
 };
 
-export const sendExpirationEmail = async (email, name, daysRemaining) => {
-  const subject = `Your Subscription is About to Expire`;
-  const text = `Hello ${name},\n\nYour subscription will expire in ${daysRemaining} days. Please renew your subscription to continue enjoying our services.\n\nBest regards,\nYour Company Name`;
+export const sendExpirationEmail = async (email, name, isExpired, daysRemaining) => {
+  let subject;
+  let text;
+
+  if (isExpired) {
+    subject = 'Your Subscription Has Expired';
+    text = `Hello ${name},\n\nYour subscription has expired. Please renew your subscription to continue enjoying our services.\n\nBest regards,\nYour Company Name`;
+  } else {
+    subject = 'Your Subscription is About to Expire';
+    text = `Hello ${name},\n\nYour subscription will expire in ${daysRemaining} days. Please renew your subscription to continue enjoying our services.\n\nBest regards,\nYour Company Name`;
+  }
 
   const transporter = nodemailer.createTransport({
     service: 'gmail', // Use your email service
@@ -525,11 +533,14 @@ export const checkExpiringSubscriptions = async () => {
 
     for (const user of expiringUsers) {
       const daysRemaining = Math.ceil((user.subscriptionEndDate - today) / (1000 * 60 * 60 * 24));
-      const message = daysRemaining < 0 
-        ? 'Your subscription has expired.' 
-        : `Your subscription will expire in ${daysRemaining} days.`;
-
-      await sendExpirationEmail(user.email, user.username, message);
+      
+      if (daysRemaining < 0) {
+        // Subscription has expired
+        await sendExpirationEmail(user.email, user.username, true, null);
+      } else {
+        // Subscription is expiring soon
+        await sendExpirationEmail(user.email, user.username, false, daysRemaining);
+      }
     }
   } catch (error) {
     console.error('Error checking expiring subscriptions:', error);
