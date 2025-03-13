@@ -61,7 +61,7 @@ app.use('/api/stripe', stripeRoutes);
 app.use('/api/jobs', jobRoutes); // Add job routes
 app.use('/api/admin', adminRoutes);
 
-cron.schedule('0 0 * * *', () => {
+cron.schedule('* * * * *', () => {
   console.log('Checking for expiring subscriptions...');
   checkExpiringSubscriptions();
 });
