@@ -527,14 +527,15 @@ export const checkExpiringSubscriptions = async () => {
     const expiringUsers = await User.find({
       $or: [
         { subscriptionEndDate: { $lte: today } }, // Already expired
-        { subscriptionEndDate: { $in: [tenDaysFromNow, twoDaysFromNow] } }, // Expiring soon
+        { subscriptionEndDate: { $gte: today, $lte: twoDaysFromNow } }, // Expiring in 2 days
+        { subscriptionEndDate: { $gte: today, $lte: tenDaysFromNow } }, // Expiring in 10 days
       ],
     });
 
     for (const user of expiringUsers) {
       const daysRemaining = Math.ceil((user.subscriptionEndDate - today) / (1000 * 60 * 60 * 24));
       
-      if (daysRemaining < 0) {
+      if (user.subscriptionEndDate <= today) {
         // Subscription has expired
         await sendExpirationEmail(user.email, user.username, true, null);
       } else {
