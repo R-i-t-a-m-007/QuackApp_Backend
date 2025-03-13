@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
-import cron from 'node-cron';
 
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
@@ -13,7 +12,6 @@ import workerRoutes from './routes/workerRoutes.js'
 import stripeRoutes from './routes/stripeRoutes.js'
 import jobRoutes from './routes/jobRoutes.js'; // Import job routes
 import adminRoutes from './routes/adminRoutes.js';
-import { checkExpiringSubscriptions } from './controllers/authController.js';
 
 
 dotenv.config();
@@ -61,12 +59,7 @@ app.use('/api/stripe', stripeRoutes);
 app.use('/api/jobs', jobRoutes); // Add job routes
 app.use('/api/admin', adminRoutes);
 
-cron.schedule('0 0 * * *', () => {
-  console.log('Checking for expiring subscriptions...');
-  checkExpiringSubscriptions();
-});
-
-
+       
 
 
 // Start server

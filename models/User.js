@@ -21,7 +21,6 @@ const UserSchema = new mongoose.Schema({
   image: { type: String, default: null },
   userCode: { type: String, required: true },
   activities: { type: [{ timestamp: Date, message: String }], default: [] },
-  subscriptionEndDate: { type: Date }, // New field for subscription end date
 });
 
 export default mongoose.model('User', UserSchema);
