@@ -24,6 +24,33 @@ const sendEmail = async (to, subject, text) => {
   return transporter.sendMail(mailOptions);
 };
 
+export const sendExpirationEmail = async (email, name, daysRemaining) => {
+  const subject = `Your Subscription is About to Expire`;
+  const text = `Hello ${name},\n\nYour subscription will expire in ${daysRemaining} days. Please renew your subscription to continue enjoying our services.\n\nBest regards,\nYour Company Name`;
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail', // Use your email service
+    auth: {
+      user: process.env.EMAIL_USER, // Your email
+      pass: process.env.EMAIL_PASS, // Your email password or app password
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject,
+    text,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Email sent to ${email}`);
+  } catch (error) {
+    console.error(`Error sending email to ${email}:`, error);
+  }
+};
+
 // Function to generate a random user code
 const generateUserCode = () => {
   const randomNum = Math.floor(1000 + Math.random() * 9000); // Generate a random number between 1000 and 9999
@@ -53,6 +80,10 @@ export const registerUser  = async (req, res) => {
     // Generate user code
     const userCode = generateUserCode();
 
+    // Set subscription end date to one month from now
+    const subscriptionEndDate = new Date();
+    subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1);
+
     // Create new user
     const newUser  = new User({
       username,
@@ -62,15 +93,16 @@ export const registerUser  = async (req, res) => {
       postcode,
       password: hashedPassword,
       userCode, // Include userCode
+      subscriptionEndDate, // Set subscription end date
     });
 
-    await newUser.save();
+    await newUser .save();
 
-    newUser.activities.push({ timestamp: new Date(), message: 'User  registered' });
-    await newUser.save();
+    newUser .activities.push({ timestamp: new Date(), message: 'User  registered' });
+    await newUser .save();
 
     // Set session for the newly registered user
-    req.session.user = { id: newUser._id, username: newUser.username };
+    req.session.user = { id: newUser ._id, username: newUser .username };
 
     // Send a welcome email
     const subject = 'Successful Registration';
@@ -262,13 +294,19 @@ export const updateUserPackage = async (req, res) => {
     const user = await User.findById(req.session.user.id);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'User  not found' });
     }
 
     // Allow upgrade only from Basic to Pro
     if (user.package === 'Basic' && newPackage === 'Pro') {
       user.package = newPackage;
       user.price = 29.95; // Update price for Pro package
+
+      // Update subscription end date to one month from now
+      const subscriptionEndDate = new Date();
+      subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1);
+      user.subscriptionEndDate = subscriptionEndDate;
+
       await user.save();
       user.activities.push({ timestamp: new Date(), message: 'User  updated their package' });
       await user.save();
@@ -466,5 +504,27 @@ export const resetPassword = async (req, res) => {
   } catch (error) {
     console.error('Error in resetting password:', error);
     res.status(500).json({ message: 'Server error while resetting password.' });
+  }
+};
+
+export const checkExpiringSubscriptions = async () => {
+  const today = new Date();
+  const tenDaysFromNow = new Date(today);
+  tenDaysFromNow.setDate(today.getDate() + 10);
+  const twoDaysFromNow = new Date(today);
+  twoDaysFromNow.setDate(today.getDate() + 2);
+
+  try {
+    // Fetch users with subscriptions expiring in 10 days or 2 days
+    const expiringUsers = await User.find({
+      subscriptionEndDate: { $in: [tenDaysFromNow, twoDaysFromNow] },
+    });
+
+    for (const user of expiringUsers) {
+      const daysRemaining = Math.ceil((user.subscriptionEndDate - today) / (1000 * 60 * 60 * 24));
+      await sendExpirationEmail(user.email, user.username, daysRemaining);
+    }
+  } catch (error) {
+    console.error('Error checking expiring subscriptions:', error);
   }
 };

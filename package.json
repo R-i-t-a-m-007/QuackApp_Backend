@@ -27,6 +27,7 @@
     "express-session": "^1.18.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.1",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "stripe": "^16.12.0"
   },

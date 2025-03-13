@@ -316,8 +316,6 @@ export const respondToJobInvitation = async (req, res) => {
 };
 
 // Get the total count of jobs
-
-// Get the total count of jobs
 export const getTotalJobCount = async (req, res) => {
   try {
     // Get the count of all jobs in the database
