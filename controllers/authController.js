@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+import Stripe from 'stripe';
+
 
 // Function to send emails
 const sendEmail = async (to, subject, text) => {
