@@ -1,9 +1,11 @@
 import express from 'express';
-import { createPaymentIntent, createSubscription } from '../controllers/stripeController.js';
+import { attachPaymentMethod, createPaymentIntent, createSubscription } from '../controllers/stripeController.js';
 const router = express.Router();
 
 // POST: Create a Stripe Checkout session
-router.post('/create-checkout-session', createPaymentIntent);
+router.post('/create-payment-intent', createPaymentIntent);
 router.post('/create-subscription', createSubscription);
+router.post('/attach-payment-method', attachPaymentMethod);
+
 
 export default router;

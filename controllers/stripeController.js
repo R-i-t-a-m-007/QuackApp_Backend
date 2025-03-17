@@ -60,3 +60,25 @@ export const createSubscription = async (req, res) => {
     res.status(500).json({ error: 'Failed to create subscription. Please try again later.' });
   }
 };
+
+// In your stripeController.js
+export const attachPaymentMethod = async (req, res) => {
+  const { customerId, paymentMethodId } = req.body;
+
+  try {
+    // Attach the payment method to the customer
+    await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+
+    // Set the payment method as the default for the customer
+    await stripe.customers.update(customerId, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId,
+      },
+    });
+
+    res.status(200).json({ message: 'Payment method attached successfully.' });
+  } catch (error) {
+    console.error('Error attaching payment method:', error);
+    res.status(500).json({ error: 'Failed to attach payment method.' });
+  }
+};
