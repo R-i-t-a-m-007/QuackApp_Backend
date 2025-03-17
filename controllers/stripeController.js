@@ -38,3 +38,25 @@ export const createPaymentIntent = async (req, res) => {
   }
 };
 
+export const createSubscription = async (req, res) => {
+  try {
+    const { customerId, priceId } = req.body; // Ensure these are passed from the frontend
+
+    if (!customerId || !priceId) {
+      return res.status(400).json({ error: 'Customer ID and Price ID are required.' });
+    }
+
+    // Create a subscription in Stripe
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId, // The Stripe customer ID
+      items: [{ price: priceId }],
+      expand: ['latest_invoice.payment_intent'], // Optional: to get payment intent details
+    });
+
+    // Return the subscription details to the frontend
+    res.status(200).json({ subscription });
+  } catch (error) {
+    console.error('Stripe Create Subscription Error:', error.message);
+    res.status(500).json({ error: 'Failed to create subscription. Please try again later.' });
+  }
+};
