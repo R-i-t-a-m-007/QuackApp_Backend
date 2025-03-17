@@ -513,8 +513,12 @@ export const cancelSubscription = async (req, res) => {
 
 export const getCustomerId = async (req, res) => {
   try {
-    // Assuming you have user authentication middleware that sets req.user
-    const userId = req.user.id; // Get the user ID from the session or token
+    // Check if the user is authenticated
+    if (!req.session.user || !req.session.user.id) {
+      return res.status(401).json({ error: 'User  not authenticated.' });
+    }
+
+    const userId = req.session.user.id; // Get the user ID from the session
     const user = await User.findById(userId); // Find the user in the database
 
     if (!user || !user.stripeCustomerId) {
