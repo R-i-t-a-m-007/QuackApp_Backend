@@ -1,6 +1,7 @@
 // stripeController.js
 import stripeLib from 'stripe';
 import dotenv from 'dotenv';
+import User from '../models/User.js';
 
 // Load environment variables
 dotenv.config();
@@ -86,5 +87,33 @@ export const attachPaymentMethod = async (req, res) => {
   } catch (error) {
     console.error('Error attaching payment method:', error);
     res.status(500).json({ error: 'Failed to attach payment method.' });
+  }
+};
+
+export const cancelSubscription = async (req, res) => {
+  try {
+    const userId = eq.session.user ? req.session.user.id : null;
+    const user = await User.findById(userId);
+
+    if (!user || !user.stripeSubscriptionId) {
+      return res.status(400).json({ message: 'User subscription not found' });
+    }
+
+    // Cancel the subscription in Stripe
+    const subscription = await stripe.subscriptions.update(user.stripeSubscriptionId, {
+      cancel_at_period_end: true, // Cancels at the end of the billing cycle
+    });
+
+    // Optionally update the user record
+    user.subscriptionStatus = 'canceled';
+    await user.save();
+
+    res.json({
+      message: 'Subscription will be canceled at the end of the billing cycle.',
+      subscription,
+    });
+  } catch (error) {
+    console.error('Cancel Subscription Error:', error);
+    res.status(500).json({ message: 'Error canceling subscription' });
   }
 };
