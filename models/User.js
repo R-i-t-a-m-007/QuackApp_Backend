@@ -22,6 +22,7 @@ const UserSchema = new mongoose.Schema({
   userCode: { type: String, required: true },
   activities: { type: [{ timestamp: Date, message: String }], default: [] },
   subscribed: { type: Boolean, default: false },
+  stripeCustomerId: { type: String, required: true },
 });
 
 export default mongoose.model('User', UserSchema);

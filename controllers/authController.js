@@ -53,6 +53,17 @@ export const registerUser  = async (req, res) => {
     // Generate user code
     const userCode = generateUserCode();
 
+    // Create a new customer in Stripe
+    const customer = await stripe.customers.create({
+      email: email,
+      name: username,
+      phone: phone,
+      address: {
+        line1: address,
+        postal_code: postcode,
+      },
+    });
+
     // Create new user
     const newUser  = new User({
       username,
@@ -61,8 +72,9 @@ export const registerUser  = async (req, res) => {
       address,
       postcode,
       password: hashedPassword,
-      userCode, 
+      userCode,
       subscribed: true,
+      stripeCustomerId: customer.id, // Store the Stripe customer ID
     });
 
     await newUser .save();
@@ -491,5 +503,23 @@ export const cancelSubscription = async (req, res) => {
   } catch (error) {
     console.error('Error canceling subscription:', error);
     res.status(500).json({ message: 'Failed to cancel subscription.' });
+  }
+};
+
+export const getCustomerId = async (req, res) => {
+  try {
+    // Assuming you have user authentication middleware that sets req.user
+    const userId = req.user.id; // Get the user ID from the session or token
+    const user = await User.findById(userId); // Find the user in the database
+
+    if (!user || !user.stripeCustomerId) {
+      return res.status(404).json({ error: 'Customer ID not found.' });
+    }
+
+    // Return the customer ID
+    res.status(200).json({ customerId: user.stripeCustomerId });
+  } catch (error) {
+    console.error('Error retrieving customer ID:', error);
+    res.status(500).json({ error: 'Failed to retrieve customer ID.' });
   }
 };

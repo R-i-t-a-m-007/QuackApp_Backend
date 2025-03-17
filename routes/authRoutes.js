@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerUser , loginUser , getLoggedInUser , logoutUser , requestOtp, storeSelectedPackage,getSessionData,updateUserPackage, uploadUserImage, getAllUsers, updateUserDetails, deleteUser, getUserById, getTotalPrice, requestPasswordReset, resetPassword, cancelSubscription } from '../controllers/authController.js';
+import { registerUser , loginUser , getLoggedInUser , logoutUser , requestOtp, storeSelectedPackage,getSessionData,updateUserPackage, uploadUserImage, getAllUsers, updateUserDetails, deleteUser, getUserById, getTotalPrice, requestPasswordReset, resetPassword, cancelSubscription, getCustomerId } from '../controllers/authController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -21,6 +21,8 @@ router.get('/total-price', getTotalPrice);
 router.post('/forgot-password', requestPasswordReset);
 router.post('/reset-password', resetPassword);
 router.delete('/cancel-subscription', cancelSubscription);
+router.get('/get-customer-id', getCustomerId);
+
 
 
 
