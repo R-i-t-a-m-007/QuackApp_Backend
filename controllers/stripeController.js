@@ -68,6 +68,11 @@ export const attachPaymentMethod = async (req, res) => {
   const { customerId, paymentMethodId } = req.body;
   console.log('Received data:', req.body);
 
+  if (!customerId || !paymentMethodId) {
+    console.error('Error: Missing customerId or paymentMethodId');
+    return res.status(400).json({ error: 'customerId and paymentMethodId are required.' });
+  }
+
   try {
     // Attach the payment method to the customer
     await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId, confirm: true, });
