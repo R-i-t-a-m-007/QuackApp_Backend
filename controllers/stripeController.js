@@ -64,10 +64,11 @@ export const createSubscription = async (req, res) => {
 // In your stripeController.js
 export const attachPaymentMethod = async (req, res) => {
   const { customerId, paymentMethodId } = req.body;
+  console.log('Received data:', req.body);
 
   try {
     // Attach the payment method to the customer
-    await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+    await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId, confirm: true, });
 
     // Set the payment method as the default for the customer
     await stripe.customers.update(customerId, {
