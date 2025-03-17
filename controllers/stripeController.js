@@ -92,7 +92,7 @@ export const attachPaymentMethod = async (req, res) => {
 
 export const cancelSubscription = async (req, res) => {
   try {
-    const userId = eq.session.user ? req.session.user.id : null;
+    const userId = req.session.user ? req.session.user.id : null;
     const user = await User.findById(userId);
 
     if (!user || !user.stripeSubscriptionId) {
