@@ -61,7 +61,8 @@ export const registerUser  = async (req, res) => {
       address,
       postcode,
       password: hashedPassword,
-      userCode, // Include userCode
+      userCode, 
+      subscribed: true,
     });
 
     await newUser .save();
@@ -467,5 +468,28 @@ export const resetPassword = async (req, res) => {
   } catch (error) {
     console.error('Error in resetting password:', error);
     res.status(500).json({ message: 'Server error while resetting password.' });
+  }
+};
+
+export const cancelSubscription = async (req, res) => {
+  try {
+    if (!req.session.user || !req.session.user.id) {
+      return res.status(401).json({ message: 'No user logged in' });
+    }
+
+    const user = await User.findById(req.session.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User  not found' });
+    }
+
+    // Set subscribed to false
+    user.subscribed = false;
+    await user.save();
+
+    return res.status(200).json({ message: 'Subscription canceled successfully.', user });
+  } catch (error) {
+    console.error('Error canceling subscription:', error);
+    res.status(500).json({ message: 'Failed to cancel subscription.' });
   }
 };
