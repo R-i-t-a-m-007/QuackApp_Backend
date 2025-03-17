@@ -3,8 +3,11 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
-import Stripe from 'stripe';
+import stripeLib from 'stripe';
+import dotenv from 'dotenv';
 
+dotenv.config();
+const stripe = stripeLib(process.env.STRIPE_SECRET_KEY);
 
 // Function to send emails
 const sendEmail = async (to, subject, text) => {
