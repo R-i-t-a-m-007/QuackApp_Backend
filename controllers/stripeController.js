@@ -41,6 +41,7 @@ export const createPaymentIntent = async (req, res) => {
 export const createSubscription = async (req, res) => {
   try {
     const { customerId, priceId } = req.body; // Ensure these are passed from the frontend
+    console.log('Received subscription data:', req.body); 
 
     if (!customerId || !priceId) {
       return res.status(400).json({ error: 'Customer ID and Price ID are required.' });
@@ -51,6 +52,7 @@ export const createSubscription = async (req, res) => {
       customer: customerId, // The Stripe customer ID
       items: [{ price: priceId }],
       expand: ['latest_invoice.payment_intent'], // Optional: to get payment intent details
+      payment_behavior: 'default_incomplete',
     });
 
     // Return the subscription details to the frontend
