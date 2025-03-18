@@ -132,7 +132,7 @@ export const cancelSubscription = async (req, res) => {
     const subscriptionEndDate = new Date(subscription.current_period_end * 1000);
 
     // Optionally update the user record
-    user.subscriptionStatus = 'canceled';
+    user.subscribed = false;
     user.subscriptionEndDate = subscriptionEndDate;
     await user.save();
 
