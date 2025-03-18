@@ -61,6 +61,8 @@ export const createSubscription = async (req, res) => {
       return res.status(500).json({ error: 'Failed to create subscription in Stripe.' });
     }
 
+    const subscriptionEndDate = new Date(subscription.current_period_end * 1000); // Convert from UNIX timestamp
+
     // Find user in database and update with subscription ID
     const user = await User.findById(userId);
     if (!user) {
@@ -69,11 +71,13 @@ export const createSubscription = async (req, res) => {
 
     user.stripeSubscriptionId = subscription.id;
     user.subscribed = true;
+    user.subscriptionEndDate = subscriptionEndDate;
     await user.save();
 
     res.status(200).json({ 
       message: 'Subscription created successfully.', 
       subscriptionId: subscription.id,
+      subscriptionEndDate,
       subscription,
     });
 
@@ -125,14 +129,17 @@ export const cancelSubscription = async (req, res) => {
     const subscription = await stripe.subscriptions.update(user.stripeSubscriptionId, {
       cancel_at_period_end: true, // Cancels at the end of the billing cycle
     });
+    const subscriptionEndDate = new Date(subscription.current_period_end * 1000);
 
     // Optionally update the user record
     user.subscriptionStatus = 'canceled';
+    user.subscriptionEndDate = subscriptionEndDate;
     await user.save();
 
     res.json({
       message: 'Subscription will be canceled at the end of the billing cycle.',
       subscription,
+      subscriptionEndDate,
     });
   } catch (error) {
     console.error('Cancel Subscription Error:', error);

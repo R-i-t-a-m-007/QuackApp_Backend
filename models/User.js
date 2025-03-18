@@ -24,6 +24,7 @@ const UserSchema = new mongoose.Schema({
   subscribed: { type: Boolean, default: false },
   stripeCustomerId: { type: String, required: true },
   stripeSubscriptionId: { type: String, default: null },
+  subscriptionEndDate: { type: Date , default: null },
 });
 
 export default mongoose.model('User', UserSchema);
