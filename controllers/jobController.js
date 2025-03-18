@@ -110,6 +110,10 @@ export const acceptJob = async (req, res) => {
       return res.status(400).json({ message: 'You have already accepted this job.' });
     }
 
+    if (job.jobStatus === true) {
+      return res.status(400).json({ message: 'The job requirements have already been fulfilled. No more workers can be accepted.' });
+    }
+
     // Add the worker ID to the job
     if (workerId) {
       job.workers.push(workerId); // Add worker ID to the workers array
