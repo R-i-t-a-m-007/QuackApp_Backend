@@ -36,11 +36,9 @@ export const createJob = async (req, res) => {
 // Fetch jobs for the logged-in worker based on userCode and jobStatus false
 export const getJobsForWorker = async (req, res) => {
   const workerId = req.session.worker ? req.session.worker._id : null;
-  console.log('Worker ID:', workerId); // Debugging
-
+  
   try {
     if (!workerId) {
-      console.log('Error: Worker ID is missing');
       return res.status(400).json({ message: 'Worker ID is required.' });
     }
 
@@ -56,7 +54,6 @@ export const getJobsForWorker = async (req, res) => {
       workers: { $ne: workerId },
     });
 
-    console.log('Jobs found:', jobs); // Debugging
     res.status(200).json(jobs);
   } catch (error) {
     console.error('Error fetching jobs:', error);
@@ -276,7 +273,6 @@ export const getInvitedJobsForWorker = async (req, res) => {
 
   try {
     const jobs = await Job.find({ invitedWorkers: workerId });
-    console.log('Invited Jobs:', jobs); // Log the jobs found
     res.status(200).json(jobs);
   } catch (error) {
     console.error('Error fetching invited jobs:', error);
