@@ -293,6 +293,10 @@ export const respondToJobInvitation = async (req, res) => {
       return res.status(404).json({ message: 'Job not found.' });
     }
 
+    if (job.jobStatus === true) {
+      return res.status(400).json({ message: 'The job requirements have already been fulfilled. No more workers can be accepted.' });
+    }
+
     if (response === 'accept') {
       // Add worker to the job's workers array
       job.workers.push(workerId);
@@ -314,6 +318,7 @@ export const respondToJobInvitation = async (req, res) => {
     res.status(500).json({ message: 'Server error while responding to job invitation.' });
   }
 };
+
 
 // Get the total count of jobs
 export const getTotalJobCount = async (req, res) => {
