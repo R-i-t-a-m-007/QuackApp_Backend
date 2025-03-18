@@ -39,28 +39,50 @@ export const createPaymentIntent = async (req, res) => {
 
 export const createSubscription = async (req, res) => {
   try {
-    const { customerId, priceId } = req.body; // Ensure these are passed from the frontend
-    console.log('Received subscription data:', req.body); 
+    const { customerId, priceId } = req.body; // Ensure userId is received
 
-    if (!customerId || !priceId) {
-      return res.status(400).json({ error: 'Customer ID and Price ID are required.' });
+    console.log('Received subscription data:', req.body);
+
+    const userId = req.session.user ? req.session.user.id : null;
+
+    if (!customerId || !priceId || !userId) {
+      return res.status(400).json({ error: 'Customer ID, Price ID, and User ID are required.' });
     }
 
     // Create a subscription in Stripe
     const subscription = await stripe.subscriptions.create({
-      customer: customerId, // The Stripe customer ID
+      customer: customerId,
       items: [{ price: priceId }],
-      expand: ['latest_invoice.payment_intent'], // Optional: to get payment intent details
+      expand: ['latest_invoice.payment_intent'],
       payment_behavior: 'default_incomplete',
     });
 
-    // Return the subscription details to the frontend
-    res.status(200).json({ subscription });
+    if (!subscription || !subscription.id) {
+      return res.status(500).json({ error: 'Failed to create subscription in Stripe.' });
+    }
+
+    // Find user in database and update with subscription ID
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    user.stripeSubscriptionId = subscription.id;
+    user.subscribed = true;
+    await user.save();
+
+    res.status(200).json({ 
+      message: 'Subscription created successfully.', 
+      subscriptionId: subscription.id,
+      subscription,
+    });
+
   } catch (error) {
-    console.error('Stripe Create Subscription Error:', error.message);
+    console.error('Stripe Create Subscription Error:', error);
     res.status(500).json({ error: 'Failed to create subscription. Please try again later.' });
   }
 };
+
 
 // In your stripeController.js
 export const attachPaymentMethod = async (req, res) => {
