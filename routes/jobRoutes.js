@@ -17,7 +17,8 @@ import {
   getAllJobs,
   getJobDetailsById,
   updateJob,
-  deleteJob, // New import for responding to job invitations
+  deleteJob,
+  removeAcceptedJob, // New import for responding to job invitations
 } from '../controllers/jobController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 const router = express.Router();
@@ -41,6 +42,8 @@ router.get('/:id', sessionMiddleware, getJobById); // New route to fetch a job b
 router.post('/invite/:jobId', sessionMiddleware, inviteWorkersToJob); // Invite workers to a job
 router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
 router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
+router.put('/remove-accepted/:jobId', sessionMiddleware, removeAcceptedJob);
+
 
 
 export default router;

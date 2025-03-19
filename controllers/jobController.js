@@ -409,3 +409,40 @@ export const deleteJob = async (req, res) => {
   }
 };
 
+// Remove an accepted job (worker deletes it)
+export const removeAcceptedJob = async (req, res) => {
+  const { jobId } = req.params;
+  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+
+  try {
+    if (!workerId) {
+      return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
+    }
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found.' });
+    }
+
+    // Check if the worker is part of the job
+    if (!job.workers.includes(workerId)) {
+      return res.status(400).json({ message: 'You have not accepted this job.' });
+    }
+
+    // Remove the worker from the job's workers array
+    job.workers = job.workers.filter(id => id.toString() !== workerId.toString());
+
+    // If job was previously marked as completed and a worker removes themselves, re-evaluate jobStatus
+    if (job.jobStatus && job.workers.length < job.workersRequired) {
+      job.jobStatus = false; // Set back to false if workers drop below required count
+    }
+
+    await job.save(); // Save the updated job
+
+    res.status(200).json({ message: 'Job removed successfully!', job });
+  } catch (error) {
+    console.error('Error removing job:', error);
+    res.status(500).json({ message: 'Server error while removing job.' });
+  }
+};
+
