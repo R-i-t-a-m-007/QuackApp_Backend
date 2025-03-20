@@ -593,15 +593,21 @@ export const uploadWorkerImage = async (req, res) => {
 // Fetch workers based on shift and date
 export const getWorkersByShiftAndDate = async (req, res) => {
   const { date, shift } = req.query; // Expecting date and shift as query parameters
+  console.log(req.query);
+  
 
   try {
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) {
       return res.status(400).json({ message: 'Invalid date format.' });
     }
+    console.log(parsedDate);
+    
 
     // Get the userCode from the session
     const userCode = req.session.user ? req.session.user.userCode : req.session.company ? req.session.company.userCode : null;
+    console.log(userCode);
+    
 
     if (!userCode) {
       return res.status(403).json({ message: 'Unauthorized access. No user or company logged in.' });
@@ -617,7 +623,8 @@ export const getWorkersByShiftAndDate = async (req, res) => {
       },
       userCode: userCode, // Filter by userCode
     });
-
+    console.log(workers);
+    
     res.status(200).json(workers);
   } catch (error) {
     console.error('Error fetching workers by shift and date:', error);
