@@ -763,3 +763,62 @@ export const resetWorkerPassword = async (req, res) => {
     res.status(500).json({ message: 'Server error while resetting password.' });
   }
 };
+
+export const sendMessageToWorkers = async (req, res) => {
+  try {
+    const { message } = req.body;
+    
+    // Check if sender is a user or company
+    const sender = req.session.user || req.session.company;
+
+    if (!sender) {
+      return res.status(401).json({ message: 'Unauthorized. Please log in.' });
+    }
+
+    if (!message) {
+      return res.status(400).json({ message: 'Message cannot be empty' });
+    }
+
+    const userCode = sender.userCode; // Get userCode from session
+
+    // Find all workers with the same userCode
+    const workers = await Worker.find({ userCode });
+
+    if (workers.length === 0) {
+      return res.status(404).json({ message: 'No workers found with this code' });
+    }
+
+    // Add the message to each worker's messages array
+    await Promise.all(
+      workers.map(worker =>
+        Worker.findByIdAndUpdate(worker._id, {
+          $push: { messages: { message, senderId: sender.id, timestamp: new Date() } },
+        })
+      )
+    );
+
+    res.status(200).json({ message: 'Message sent successfully to all workers.' });
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getWorkerMessages = async (req, res) => {
+  try {
+    const { workerId } = req.params;
+
+    // Fetch worker using workerId from the URL params
+    const worker = await Worker.findOne({ userCode: workerId }).select('messages');
+
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found' });
+    }
+
+    res.status(200).json({ messages: worker.messages || [] });
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+

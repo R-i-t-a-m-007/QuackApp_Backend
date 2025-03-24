@@ -21,7 +21,9 @@ import {
   deleteWorker,
   getWorkerById,
   requestWorkerPasswordReset,
-  resetWorkerPassword
+  resetWorkerPassword,
+  sendMessageToWorkers,
+  getWorkerMessages
 } from '../controllers/workerController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
@@ -52,6 +54,8 @@ router.get("/workers/:id",getWorkerById);
 router.delete('/workers/:workerId', deleteWorker);
 router.post('/forgot-password', requestWorkerPasswordReset);
 router.post('/reset-password', resetWorkerPassword);
+router.post('/send-message', sendMessageToWorkers);
+router.get('/:workerId/messages', getWorkerMessages);
 
 
 export default router;

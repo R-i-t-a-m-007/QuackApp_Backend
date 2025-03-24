@@ -20,6 +20,13 @@ const workerSchema = new mongoose.Schema({
   activities: { type: [{ timestamp: Date, message: String }], default: [] },
   resetToken: { type: String }, // New field for password reset token
   resetTokenExpire: { type: Date }, // New field for token expiration
+  messages: [
+    {
+      message: { type: String, required: true },
+      senderId: { type: mongoose.Schema.Types.ObjectId, required: true }, // Sender (either a User or Company)
+      timestamp: { type: Date, default: Date.now },
+    },
+  ],
 });
 
 const Worker = mongoose.model('Worker', workerSchema);
