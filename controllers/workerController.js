@@ -819,39 +819,30 @@ export const getWorkerMessages = async (req, res) => {
   try {
     console.log("🔹 Received request to get messages for worker:", req.params);
 
-    const { userCode } = req.params; // Get userCode from URL params
+    const { userCode } = req.params; // Get userCode from request
 
-    // Fetch all workers with the same userCode
-    const workers = await Worker.find({ userCode }).select('messages name');
-
-    if (workers.length === 0) {
-      console.log(`❌ No workers found for userCode: ${userCode}`);
-      return res.status(404).json({ message: 'No workers found with this code' });
+    if (!userCode) {
+      console.log("❌ Missing userCode in request");
+      return res.status(400).json({ message: "User code is required" });
     }
 
-    console.log(`✅ Found ${workers.length} workers. Fetching messages...`);
+    // Find the worker with the given userCode and fetch all messages
+    const worker = await Worker.findOne({ userCode }).select('messages');
 
-    // Collect messages from all workers
-    const allMessages = workers.flatMap(worker =>
-      worker.messages.map(msg => ({
-        message: msg.message,
-        senderId: msg.senderId,
-        timestamp: msg.timestamp,
-        workerName: worker.name,
-      }))
-    );
+    if (!worker) {
+      console.log(`❌ No worker found for userCode: ${userCode}`);
+      return res.status(404).json({ message: 'Worker not found' });
+    }
 
-    // Sort messages by timestamp (latest first)
-    allMessages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-    console.log(`✅ Retrieved ${allMessages.length} messages.`);
-    res.status(200).json({ messages: allMessages });
+    console.log(`✅ Found worker. Returning all messages.`);
+    res.status(200).json(worker.messages); // Returning all messages directly
 
   } catch (error) {
     console.error('❌ Error fetching messages:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 
 export const cancelShiftForWorker = async (req, res) => {
