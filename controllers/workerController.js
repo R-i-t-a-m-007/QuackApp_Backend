@@ -204,6 +204,8 @@ export const addWorker = async (req, res) => {
     await newWorker.save();
 
     // Send registration email
+    console.log("Worker added with userCode:", userCode);
+
     await sendWorkerEmail(email, name, role, userCode, password);
 
     res.status(201).json({ message: 'Worker registration successful. Awaiting approval.' });
@@ -443,6 +445,8 @@ export const getWorkerById = async (req, res) => {
 // Function to log in a worker
 export const loginWorker = async (req, res) => {
   const { userCode, email, password } = req.body;
+  console.log("Worker added with userCode:", userCode);
+
 
   try {
     const worker = await Worker.findOne({ userCode, email });
@@ -819,6 +823,71 @@ export const getWorkerMessages = async (req, res) => {
   } catch (error) {
     console.error('Error fetching messages:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const cancelShiftForWorker = async (req, res) => {
+  try {
+    const { workerId, date, shift } = req.body; // Get workerId, date, and shift type from request body
+
+    if (!workerId || !date || !shift) {
+      return res.status(400).json({ message: "Worker ID, date, and shift are required." });
+    }
+
+    // Convert date to a comparable format
+    const shiftDate = new Date(date).toISOString().split("T")[0]; // Extract YYYY-MM-DD format
+
+    // Find the worker
+    const worker = await Worker.findById(workerId);
+    if (!worker) {
+      return res.status(404).json({ message: "Worker not found." });
+    }
+
+    // Remove the shift from the worker's availability
+    worker.availability = worker.availability.filter(
+      (slot) => !(slot.date.toISOString().split("T")[0] === shiftDate && slot.shift === shift)
+    );
+
+    // Find all jobs assigned to the worker (either in `workers` or `invitedWorkers`)
+    const jobs = await Job.find({
+      $or: [{ workers: workerId }, { invitedWorkers: workerId }],
+    });
+
+    let affectedJobs = [];
+
+    // Iterate through jobs and check if they fall under the canceled shift
+    for (const job of jobs) {
+      if (job.date.toISOString().split("T")[0] === shiftDate && job.shift === shift) {
+        // Remove job from worker's invitedJobs
+        worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== job._id.toString());
+
+        // Remove worker from job's workers and invited lists
+        job.workers = job.workers.filter(id => id.toString() !== workerId);
+        job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId);
+
+        // Check if the job is still fully staffed
+        job.jobStatus = job.workers.length >= job.workersRequired;
+
+        await job.save();
+        affectedJobs.push(job._id);
+      }
+    }
+
+    // Log activity for the worker
+    worker.activities.push({
+      timestamp: new Date(),
+      message: `Worker canceled shift on ${shiftDate} (${shift}) and was removed from ${affectedJobs.length} jobs.`,
+    });
+
+    await worker.save();
+
+    res.status(200).json({
+      message: `Shift canceled successfully. Updated ${affectedJobs.length} jobs.`,
+      affectedJobs,
+    });
+  } catch (error) {
+    console.error("Error canceling shift:", error);
+    res.status(500).json({ message: "Server error while canceling shift." });
   }
 };
 

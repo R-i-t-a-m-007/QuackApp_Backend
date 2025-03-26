@@ -23,7 +23,8 @@ import {
   requestWorkerPasswordReset,
   resetWorkerPassword,
   sendMessageToWorkers,
-  getWorkerMessages
+  getWorkerMessages,
+  cancelShiftForWorker
 } from '../controllers/workerController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
@@ -56,6 +57,8 @@ router.post('/forgot-password', requestWorkerPasswordReset);
 router.post('/reset-password', resetWorkerPassword);
 router.post('/send-message', sendMessageToWorkers);
 router.get('/:workerId/messages', getWorkerMessages);
+router.post('/cancel-shift', sessionMiddleware, cancelShiftForWorker);
+
 
 
 export default router;
