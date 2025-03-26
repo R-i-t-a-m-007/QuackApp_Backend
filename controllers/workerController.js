@@ -783,8 +783,8 @@ export const sendMessageToWorkers = async (req, res) => {
       return res.status(400).json({ message: 'Message cannot be empty' });
     }
 
-    const userCode = sender.userCode; // Get userCode from session
-
+    const userCode = sender.userCode || sender.comp_code; // Get userCode from session
+    const senderId = sender._id || sender.userCode || sender.comp_code; // Ensure senderId is always set
     // Find all workers with the same userCode
     const workers = await Worker.find({ userCode });
 
@@ -796,7 +796,7 @@ export const sendMessageToWorkers = async (req, res) => {
     await Promise.all(
       workers.map(worker =>
         Worker.findByIdAndUpdate(worker._id, {
-          $push: { messages: { message, senderId: sender.id, timestamp: new Date() } },
+          $push: { messages: { message, senderId, timestamp: new Date() } },
         })
       )
     );
