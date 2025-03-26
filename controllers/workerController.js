@@ -772,7 +772,7 @@ export const sendMessageToWorkers = async (req, res) => {
   try {
     const { message } = req.body;
     
-    // Check if sender is a user or company
+    // Ensure sender exists
     const sender = req.session.user || req.session.company;
 
     if (!sender) {
@@ -783,8 +783,19 @@ export const sendMessageToWorkers = async (req, res) => {
       return res.status(400).json({ message: 'Message cannot be empty' });
     }
 
-    const userCode = sender.userCode || sender.comp_code; // Get userCode from session
-    const senderId = sender._id || sender.userCode || sender.comp_code; // Ensure senderId is always set
+    // Define senderId correctly
+    const senderId = sender._id?.toString() || sender.userCode || sender.comp_code;
+
+    // ✅ Add console.log for debugging
+    console.log('Sender:', sender);
+    console.log('Sender ID:', senderId);
+
+    if (!senderId) {
+      return res.status(400).json({ message: 'Invalid sender. No ID found.' });
+    }
+
+    const userCode = sender.userCode || sender.comp_code; // Ensure userCode is correctly assigned
+
     // Find all workers with the same userCode
     const workers = await Worker.find({ userCode });
 
@@ -792,12 +803,20 @@ export const sendMessageToWorkers = async (req, res) => {
       return res.status(404).json({ message: 'No workers found with this code' });
     }
 
-    // Add the message to each worker's messages array
+    // Construct message object with a valid senderId
+    const newMessage = { message, senderId, timestamp: new Date() };
+
+    // ✅ Add console.log for debugging before saving
+    console.log('New message object:', newMessage);
+
+    // Ensure Mongoose validation runs by using `updateOne()` with `runValidators: true`
     await Promise.all(
       workers.map(worker =>
-        Worker.findByIdAndUpdate(worker._id, {
-          $push: { messages: { message, senderId, timestamp: new Date() } },
-        })
+        Worker.updateOne(
+          { _id: worker._id },
+          { $push: { messages: newMessage } },
+          { runValidators: true } // Ensures schema validation
+        )
       )
     );
 
@@ -807,6 +826,7 @@ export const sendMessageToWorkers = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 export const getWorkerMessages = async (req, res) => {
   try {
