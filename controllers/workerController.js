@@ -5,6 +5,8 @@ import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
 import crypto from 'crypto';
+import mongoose from 'mongoose';
+
 
 // Function to send email to the worker with credentials
 const sendWorkerEmail = async (email, name, role, userCode, password) => {
