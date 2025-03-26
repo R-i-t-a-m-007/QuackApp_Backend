@@ -5,8 +5,6 @@ import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
 import crypto from 'crypto';
-import mongoose from 'mongoose';
-
 
 // Function to send email to the worker with credentials
 const sendWorkerEmail = async (email, name, role, userCode, password) => {
@@ -206,8 +204,6 @@ export const addWorker = async (req, res) => {
     await newWorker.save();
 
     // Send registration email
-    console.log("Worker added with userCode:", userCode);
-
     await sendWorkerEmail(email, name, role, userCode, password);
 
     res.status(201).json({ message: 'Worker registration successful. Awaiting approval.' });
@@ -447,49 +443,34 @@ export const getWorkerById = async (req, res) => {
 // Function to log in a worker
 export const loginWorker = async (req, res) => {
   const { userCode, email, password } = req.body;
-  console.log("Worker login attempt with userCode:", userCode);
 
   try {
     const worker = await Worker.findOne({ userCode, email });
 
     if (!worker) {
-      return res.status(401).json({ message: "Invalid user code, email, or password." });
+      return res.status(401).json({ message: 'Invalid user code, email, or password.' });
     }
 
     if (!worker.approved) {
-      return res.status(403).json({ message: "Your account is not approved yet. Please contact support." });
+      return res.status(403).json({ message: 'Your account is not approved yet. Please contact support.' });
     }
 
     const isMatch = await bcrypt.compare(password, worker.password);
+
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid user code, email, or password." });
+      return res.status(401).json({ message: 'Invalid user code, email, or password.' });
     }
 
-    // ✅ Clean up messages with missing senderId
-    const invalidMessages = worker.messages.filter(msg => !msg.senderId);
-    if (invalidMessages.length > 0) {
-      console.warn("❌ Removing invalid messages with missing senderId:", invalidMessages);
-      worker.messages = worker.messages.filter(msg => msg.senderId); // Keep only valid messages
-    }
-
-    // ✅ Add login activity
-    worker.activities.push({ timestamp: new Date(), message: "Worker has logged in" });
-
-    // ✅ Save worker data before sending response
-    await worker.save();
-
-    // ✅ Store session data
     req.session.worker = { _id: worker._id, userCode: worker.userCode };
 
-    console.log("✅ Worker logged in:", req.session.worker);
-    res.status(200).json({ message: "Login successful.", worker });
-
+    res.status(200).json({ message: 'Login successful.', worker });
+    worker.activities.push({timestamp: new Date(), message:"Worker has logged in"});
+    await worker.save();
   } catch (error) {
-    console.error("❌ Error logging in worker:", error);
-    res.status(500).json({ message: "Server error." });
+    console.error('Error logging in worker:', error);
+    res.status(500).json({ message: 'Server error.' });
   }
 };
-
 
 // Update worker's availability
 export const updateWorkerAvailability = async (req, res) => {
@@ -786,61 +767,42 @@ export const resetWorkerPassword = async (req, res) => {
 export const sendMessageToWorkers = async (req, res) => {
   try {
     const { message } = req.body;
-
-    // Ensure sender exists
+    
+    // Check if sender is a user or company
     const sender = req.session.user || req.session.company;
 
     if (!sender) {
-      return res.status(401).json({ message: "Unauthorized. Please log in." });
+      return res.status(401).json({ message: 'Unauthorized. Please log in.' });
     }
 
     if (!message) {
-      return res.status(400).json({ message: "Message cannot be empty" });
+      return res.status(400).json({ message: 'Message cannot be empty' });
     }
 
-    // 🛠 Fix senderId extraction
-    const senderId = sender._id?.toString();
-    if (!senderId) {
-      console.error("❌ senderId is missing:", sender);
-      return res.status(400).json({ message: "Invalid sender. No ID found." });
-    }
-
-    console.log("✅ Sender ID:", senderId);
+    const userCode = sender.userCode; // Get userCode from session
 
     // Find all workers with the same userCode
-    const userCode = sender.userCode || sender.comp_code;
     const workers = await Worker.find({ userCode });
 
     if (workers.length === 0) {
-      return res.status(404).json({ message: "No workers found with this code" });
+      return res.status(404).json({ message: 'No workers found with this code' });
     }
 
-    const newMessage = {
-      message,
-      senderId: new mongoose.Types.ObjectId(senderId),
-      timestamp: new Date()
-    };
-
-    console.log("✅ New Message:", newMessage);
-
+    // Add the message to each worker's messages array
     await Promise.all(
       workers.map(worker =>
-        Worker.updateOne(
-          { _id: worker._id },
-          { $push: { messages: newMessage } },
-          { runValidators: true }
-        )
+        Worker.findByIdAndUpdate(worker._id, {
+          $push: { messages: { message, senderId: sender.id, timestamp: new Date() } },
+        })
       )
     );
 
-    res.status(200).json({ message: "Message sent successfully to all workers." });
+    res.status(200).json({ message: 'Message sent successfully to all workers.' });
   } catch (error) {
-    console.error("❌ Error sending message:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error('Error sending message:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-
 
 export const getWorkerMessages = async (req, res) => {
   try {
