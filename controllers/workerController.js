@@ -819,18 +819,18 @@ export const getWorkerMessages = async (req, res) => {
   try {
     console.log("🔹 Received request to get messages for worker:", req.params);
 
-    const { userCode } = req.params; // Get userCode from request
+    const { workerId } = req.params; // Get userCode from request
 
-    if (!userCode) {
+    if (!workerId) {
       console.log("❌ Missing userCode in request");
       return res.status(400).json({ message: "User code is required" });
     }
 
     // Find the worker with the given userCode and fetch all messages
-    const worker = await Worker.findOne({ userCode }).select('messages');
+    const worker = await Worker.findOne({ workerId }).select('messages');
 
     if (!worker) {
-      console.log(`❌ No worker found for userCode: ${userCode}`);
+      console.log(`❌ No worker found for userCode: ${workerId}`);
       return res.status(404).json({ message: 'Worker not found' });
     }
 
