@@ -766,84 +766,61 @@ export const resetWorkerPassword = async (req, res) => {
 
 export const sendMessageToWorkers = async (req, res) => {
   try {
-    console.log("🔹 Received request to send message:", req.body);
-
     const { message } = req.body;
-
+    
     // Check if sender is a user or company
     const sender = req.session.user || req.session.company;
 
     if (!sender) {
-      console.log("❌ Unauthorized access attempt");
       return res.status(401).json({ message: 'Unauthorized. Please log in.' });
     }
 
     if (!message) {
-      console.log("❌ Message cannot be empty");
       return res.status(400).json({ message: 'Message cannot be empty' });
     }
 
     const userCode = sender.userCode; // Get userCode from session
-    console.log(`🔹 Sender: ${sender._id}, UserCode: ${userCode}`);
 
     // Find all workers with the same userCode
     const workers = await Worker.find({ userCode });
 
     if (workers.length === 0) {
-      console.log(`❌ No workers found for userCode: ${userCode}`);
       return res.status(404).json({ message: 'No workers found with this code' });
     }
-
-    console.log(`✅ Found ${workers.length} workers. Sending message...`);
 
     // Add the message to each worker's messages array
     await Promise.all(
       workers.map(worker =>
         Worker.findByIdAndUpdate(worker._id, {
-          $push: { messages: { message, senderId: sender._id, timestamp: new Date() } },
+          $push: { messages: { message, senderId: sender.id, timestamp: new Date() } },
         })
       )
     );
 
-    console.log("✅ Message successfully sent to all workers.");
     res.status(200).json({ message: 'Message sent successfully to all workers.' });
-
   } catch (error) {
-    console.error('❌ Error sending message:', error);
+    console.error('Error sending message:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 
 export const getWorkerMessages = async (req, res) => {
   try {
-    console.log("🔹 Received request to get messages for worker:", req.params);
+    const { workerId } = req.params;
 
-    const { workerId } = req.params; // Get userCode from request
-
-    if (!workerId) {
-      console.log("❌ Missing userCode in request");
-      return res.status(400).json({ message: "User code is required" });
-    }
-
-    // Find the worker with the given userCode and fetch all messages
-    const worker = await Worker.findOne({ workerId }).select('messages');
+    // Fetch worker using workerId from the URL params
+    const worker = await Worker.findOne({ userCode: workerId }).select('messages');
 
     if (!worker) {
-      console.log(`❌ No worker found for userCode: ${workerId}`);
       return res.status(404).json({ message: 'Worker not found' });
     }
 
-    console.log(`✅ Found worker. Returning all messages.`);
-    res.status(200).json(worker.messages); // Returning all messages directly
-
+    res.status(200).json({ messages: worker.messages || [] });
   } catch (error) {
-    console.error('❌ Error fetching messages:', error);
+    console.error('Error fetching messages:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-
 
 export const cancelShiftForWorker = async (req, res) => {
   try {

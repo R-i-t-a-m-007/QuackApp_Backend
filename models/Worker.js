@@ -23,7 +23,7 @@ const workerSchema = new mongoose.Schema({
   messages: [
     {
       message: { type: String, required: true },
-      senderId: { type: mongoose.Schema.Types.ObjectId, required: false }, // Sender (either a User or Company)
+      senderId: { type: mongoose.Schema.Types.ObjectId, required: true }, // Sender (either a User or Company)
       timestamp: { type: Date, default: Date.now },
     },
   ],
