@@ -8,7 +8,7 @@ const workerSchema = new mongoose.Schema({
   password: { type: String, required: true },
   availability: [{
     date: { type: Date, required: true },
-    shift: { type: String, enum: ['Morning', 'Afternoon', 'Evening'], required: true }
+    shift: { type: String, enum: ['AM', 'PM'], required: true }
   }],
   image: { type: String, default: null },
   userCode: { type: String, required: true },
