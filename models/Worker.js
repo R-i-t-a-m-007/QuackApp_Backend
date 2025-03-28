@@ -4,9 +4,6 @@ const workerSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true },
-  role: { type: String, required: true },
-  department: { type: String, required: true },
-  address: { type: String, required: true },
   joiningDate: { type: Date, required: true },
   password: { type: String, required: true },
   availability: [{
@@ -18,12 +15,12 @@ const workerSchema = new mongoose.Schema({
   approved: { type: Boolean, default: false },
   invitedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],
   activities: { type: [{ timestamp: Date, message: String }], default: [] },
-  resetToken: { type: String }, // New field for password reset token
-  resetTokenExpire: { type: Date }, // New field for token expiration
+  resetToken: { type: String }, 
+  resetTokenExpire: { type: Date },
   messages: [
     {
       message: { type: String, required: true },
-      senderId: { type: mongoose.Schema.Types.ObjectId, required: true }, // Sender (either a User or Company)
+      senderId: { type: mongoose.Schema.Types.ObjectId, required: true },
       timestamp: { type: Date, default: Date.now },
     },
   ],

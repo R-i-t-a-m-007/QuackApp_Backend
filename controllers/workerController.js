@@ -141,13 +141,13 @@ The QuackApp Team`,
 
 // Add a new worker
 export const addWorker = async (req, res) => {
-  const { name, email, phone, role, department, address, joiningDate, password, userCode } = req.body;
+  const { name, email, phone, joiningDate, password, userCode } = req.body;
 
   try {
     // First check if the user code exists in either User or Company collection
     const userWithCode = await User.findOne({ userCode });
     const companyWithCode = await CompanyList.findOne({ comp_code: userCode });
-    
+
     if (!userWithCode && !companyWithCode) {
       return res.status(400).json({ message: 'User/Company with this code does not exist.' });
     }
@@ -165,7 +165,6 @@ export const addWorker = async (req, res) => {
     const userId = req.session.user ? req.session.user.id : null;
     const companyId = req.session.company ? req.session.company._id : null;
 
-    // This section can be removed if not using session-based validation
     if (userId) {
       const user = await User.findById(userId);
       if (!user) {
@@ -191,9 +190,6 @@ export const addWorker = async (req, res) => {
       name,
       email,
       phone,
-      role,
-      department,
-      address,
       joiningDate,
       password: hashedPassword,
       userCode,
@@ -203,8 +199,12 @@ export const addWorker = async (req, res) => {
 
     await newWorker.save();
 
+    // Log worker registration in activities
+    newWorker.activities.push({ timestamp: new Date(), message: 'Worker registered' });
+    await newWorker.save();
+
     // Send registration email
-    await sendWorkerEmail(email, name, role, userCode, password);
+    await sendWorkerEmail(email, name, userCode, password);
 
     res.status(201).json({ message: 'Worker registration successful. Awaiting approval.' });
   } catch (error) {
@@ -212,6 +212,7 @@ export const addWorker = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
 
 // Invite a worker to a job
 export const inviteWorkerToJob = async (req, res) => {
