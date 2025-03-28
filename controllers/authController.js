@@ -36,8 +36,8 @@ const generateUserCode = () => {
 };
 
 // Register User
-export const registerUser  = async (req, res) => {
-  const { username, email, phone, address, postcode, password } = req.body;
+export const registerUser = async (req, res) => {
+  const { username, email, phone, password } = req.body;
 
   try {
     // Check if username or email already exists
@@ -63,32 +63,27 @@ export const registerUser  = async (req, res) => {
       email: email,
       name: username,
       phone: phone,
-      address: {
-        line1: address,
-        postal_code: postcode,
-      },
     });
 
     // Create new user
-    const newUser  = new User({
+    const newUser = new User({
       username,
       email,
       phone,
-      address,
-      postcode,
       password: hashedPassword,
       userCode,
       subscribed: true,
       stripeCustomerId: customer.id, // Store the Stripe customer ID
     });
 
-    await newUser .save();
+    await newUser.save();
 
-    newUser .activities.push({ timestamp: new Date(), message: 'User  registered' });
-    await newUser .save();
+    // Add activity log
+    newUser.activities.push({ timestamp: new Date(), message: 'User registered' });
+    await newUser.save();
 
     // Set session for the newly registered user
-    req.session.user = { id: newUser ._id, username: newUser .username };
+    req.session.user = { id: newUser._id, username: newUser.username };
 
     // Send a welcome email
     const subject = 'Successful Registration';
@@ -114,6 +109,7 @@ The QuackApp Team`;
     res.status(500).json({ message: 'Registration failed. Please try again later.' });
   }
 };
+
 
 // Login User
 export const loginUser  = async (req, res) => {

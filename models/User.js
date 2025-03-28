@@ -4,8 +4,6 @@ const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true },
-  address: { type: String, required: true },
-  postcode: { type: String, required: true },
   password: { type: String, required: true },
   package: { 
     type: String, 
@@ -24,7 +22,7 @@ const UserSchema = new mongoose.Schema({
   subscribed: { type: Boolean, default: false },
   stripeCustomerId: { type: String, required: true },
   stripeSubscriptionId: { type: String, default: null },
-  subscriptionEndDate: { type: Date , default: null },
+  subscriptionEndDate: { type: Date, default: null },
 });
 
 export default mongoose.model('User', UserSchema);
