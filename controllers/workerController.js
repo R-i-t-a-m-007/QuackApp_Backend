@@ -888,3 +888,26 @@ export const cancelShiftForWorker = async (req, res) => {
   }
 };
 
+export const getWorkerShifts = async (req, res) => {
+  try {
+    // Ensure the worker is logged in
+    if (!req.session.worker || !req.session.worker._id) {
+      return res.status(401).json({ message: 'No worker logged in.' });
+    }
+
+    const workerId = req.session.worker._id;
+
+    // Fetch worker from database
+    const worker = await Worker.findById(workerId).select('availability'); // Only fetch availability field
+
+    if (!worker) {
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    // Send worker's availability data
+    res.status(200).json(worker.availability);
+  } catch (error) {
+    console.error('Error fetching worker shifts:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};

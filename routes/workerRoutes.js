@@ -24,7 +24,8 @@ import {
   resetWorkerPassword,
   sendMessageToWorkers,
   getWorkerMessages,
-  cancelShiftForWorker
+  cancelShiftForWorker,
+  getWorkerShifts
 } from '../controllers/workerController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
@@ -58,6 +59,8 @@ router.post('/reset-password', resetWorkerPassword);
 router.post('/send-message', sendMessageToWorkers);
 router.get('/:workerId/messages', getWorkerMessages);
 router.post('/cancel-shift', sessionMiddleware, cancelShiftForWorker);
+router.get('/my-shifts', sessionMiddleware, getWorkerShifts); // Fetch the logged-in worker's availability
+
 
 
 
