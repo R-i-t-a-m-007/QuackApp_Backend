@@ -840,15 +840,6 @@ export const cancelShiftForWorker = async (req, res) => {
       return res.status(404).json({ message: "Worker not found." });
     }
 
-    // Check if the shift exists in worker's availability
-    const hasShift = worker.availability.some(
-      (slot) => slot.date.toISOString().split("T")[0] === shiftDate && slot.shift === shift
-    );
-
-    if (!hasShift) {
-      return res.status(400).json({ message: "Shift not found in worker's availability." });
-    }
-
     // Remove the shift from the worker's availability
     worker.availability = worker.availability.filter(
       (slot) => !(slot.date.toISOString().split("T")[0] === shiftDate && slot.shift === shift)
@@ -857,13 +848,13 @@ export const cancelShiftForWorker = async (req, res) => {
     // Find all jobs assigned to the worker (either in `workers` or `invitedWorkers`)
     const jobs = await Job.find({
       $or: [{ workers: workerId }, { invitedWorkers: workerId }],
-      date: { $gte: new Date(shiftDate), $lt: new Date(new Date(shiftDate).setDate(new Date(shiftDate).getDate() + 1)) },
     });
 
     let affectedJobs = [];
 
+    // Iterate through jobs and check if they fall under the canceled shift
     for (const job of jobs) {
-      if (job.shift === shift) {
+      if (job.date.toISOString().split("T")[0] === shiftDate && job.shift === shift) {
         // Remove job from worker's invitedJobs
         worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== job._id.toString());
 
@@ -871,9 +862,10 @@ export const cancelShiftForWorker = async (req, res) => {
         job.workers = job.workers.filter(id => id.toString() !== workerId);
         job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId);
 
-        // Update job status based on required workers
-        job.jobStatus = job.workers.length < job.workersRequired ? "Open" : "Filled";
+        // Check if the job is still fully staffed
+        job.jobStatus = job.workers.length >= job.workersRequired;
 
+        await job.save();
         affectedJobs.push(job._id);
       }
     }
@@ -884,8 +876,7 @@ export const cancelShiftForWorker = async (req, res) => {
       message: `Worker canceled shift on ${shiftDate} (${shift}) and was removed from ${affectedJobs.length} jobs.`,
     });
 
-    // Save updates in bulk
-    await Promise.all([worker.save(), ...jobs.map(job => job.save())]);
+    await worker.save();
 
     res.status(200).json({
       message: `Shift canceled successfully. Updated ${affectedJobs.length} jobs.`,
@@ -896,7 +887,6 @@ export const cancelShiftForWorker = async (req, res) => {
     res.status(500).json({ message: "Server error while canceling shift." });
   }
 };
-
 
 export const getWorkerShifts = async (req, res) => {
   try {
