@@ -6,14 +6,6 @@ import User from '../models/User.js';
 import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
 import crypto from 'crypto';
 
-const transporter = nodemailer.createTransport({
-  service: "Gmail",
-  auth: {
-    user: process.env.EMAIL_USER, // Your email
-    pass: process.env.EMAIL_PASS, // Your email password or app-specific password
-  },
-});
-
 // Function to send email to the worker with credentials
 const sendWorkerEmail = async (email, name, role, userCode, password) => {
   const transporter = nodemailer.createTransport({
@@ -144,6 +136,44 @@ The QuackApp Team`,
     console.log('Email sent successfully to worker:', email);
   } catch (error) {
     console.error('Error sending email to worker:', error);
+  }
+};
+
+const sendShiftCancellationEmail = async (worker, shiftDate, shift, affectedJobs) => {
+  try {
+    // Find user associated with worker
+    const user = await User.findOne({ userCode: worker.userCode });
+    if (!user) return;
+
+    // Create Nodemailer Transporter Inside Function
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Shift Cancellation Notice",
+      text: `Hello ${user.name},
+
+Worker ${worker.name} (${worker.email}) has canceled their shift on ${shiftDate} (${shift}).
+
+Affected Jobs: ${affectedJobs.length}
+
+Please take the necessary actions.
+
+Best Regards,  
+The QuackApp Team`,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("Shift cancellation email sent to:", user.email);
+  } catch (error) {
+    console.error("Error sending shift cancellation email:", error);
   }
 };
 
@@ -839,28 +869,35 @@ export const cancelShiftForWorker = async (req, res) => {
       return res.status(400).json({ message: "Worker ID, date, and shift are required." });
     }
 
-    const shiftDate = new Date(date).toISOString().split("T")[0];
+    const shiftDate = new Date(date);
+    if (isNaN(shiftDate)) {
+      return res.status(400).json({ message: "Invalid date format." });
+    }
 
-    // Find the worker
+    const formattedShiftDate = shiftDate.toISOString().split("T")[0];
+
+    // Find Worker
     const worker = await Worker.findById(workerId);
     if (!worker) {
       return res.status(404).json({ message: "Worker not found." });
     }
 
-    // Remove the shift from the worker's availability
+    // Remove Shift from Availability
+    const initialLength = worker.availability.length;
     worker.availability = worker.availability.filter(
-      (slot) => !(slot.date.toISOString().split("T")[0] === shiftDate && slot.shift === shift)
+      (slot) => new Date(slot.date).toISOString().split("T")[0] !== formattedShiftDate || slot.shift !== shift
     );
 
-    // Find all jobs assigned to the worker
-    const jobs = await Job.find({
-      $or: [{ workers: workerId }, { invitedWorkers: workerId }],
-    });
+    if (worker.availability.length === initialLength) {
+      return res.status(400).json({ message: "Shift not found in worker's availability." });
+    }
 
+    // Find Jobs Associated with Worker
+    const jobs = await Job.find({ $or: [{ workers: workerId }, { invitedWorkers: workerId }] });
     let affectedJobs = [];
 
     for (const job of jobs) {
-      if (job.date.toISOString().split("T")[0] === shiftDate && job.shift === shift) {
+      if (new Date(job.date).toISOString().split("T")[0] === formattedShiftDate && job.shift === shift) {
         worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== job._id.toString());
 
         job.workers = job.workers.filter(id => id.toString() !== workerId);
@@ -873,33 +910,16 @@ export const cancelShiftForWorker = async (req, res) => {
       }
     }
 
-    // Log activity
+    // Log Activity
     worker.activities.push({
       timestamp: new Date(),
-      message: `Worker canceled shift on ${shiftDate} (${shift}) and was removed from ${affectedJobs.length} jobs.`,
+      message: `Worker canceled shift on ${formattedShiftDate} (${shift}) and was removed from ${affectedJobs.length} jobs.`,
     });
 
     await worker.save();
 
-    // Find the user with the same userCode
-    const user = await User.findOne({ userCode: worker.userCode });
-    if (user) {
-      // Send email notification to the user
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: user.email,
-        subject: "Shift Cancellation Notification",
-        text: `Hello ${user.name},\n\nWorker ${worker.name} (${worker.email}) has canceled their shift on ${shiftDate} (${shift}).\n\nAffected Jobs: ${affectedJobs.length}.\n\nBest regards,\nYour Team`,
-      };
-
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error("Error sending email:", error);
-        } else {
-          console.log("Email sent:", user.email);
-        }
-      });
-    }
+    // Send Email Notification
+    sendShiftCancellationEmail(worker, formattedShiftDate, shift, affectedJobs);
 
     res.status(200).json({
       message: `Shift canceled successfully. Updated ${affectedJobs.length} jobs.`,
