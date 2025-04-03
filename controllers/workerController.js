@@ -251,44 +251,6 @@ export const addWorker = async (req, res) => {
   }
 };
 
-
-// Invite a worker to a job
-export const inviteWorkerToJob = async (req, res) => {
-  const { workerId } = req.params; // Get the worker ID from the request parameters
-  const { jobId } = req.body; // Get the job ID from the request body
-
-  try {
-    const worker = await Worker.findById(workerId);
-    const job = await Job.findById(jobId);
-
-    if (!worker) {
-      return res.status(404).json({ message: 'Worker not found.' });
-    }
-
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found.' });
-    }
-
-    // Add the job ID to the worker's invitedJobs array
-    worker.invitedJobs.push(jobId);
-    await worker.save();
-    worker.activities.push({ timestamp: new Date(), message: "Worker has been invited for the job" });
-    await worker.save();
-
-    // Add the worker ID to the job's invitedWorkers array
-    job.invitedWorkers.push(workerId);
-    await job.save();
-
-    // Send an email to the worker
-    await sendJobRequestEmail(worker.email, worker.name, job.title); // Assuming worker has email and name fields
-
-    res.status(200).json({ message: 'Worker invited successfully!', worker });
-  } catch (error) {
-    console.error('Error inviting worker:', error);
-    res.status(500).json({ message: 'Server error while inviting worker.' });
-  }
-};
-
 // Fetch jobs that a worker has been invited to
 export const getInvitedJobsForWorker = async (req, res) => {
   const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session

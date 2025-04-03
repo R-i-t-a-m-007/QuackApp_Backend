@@ -13,7 +13,6 @@ import {
   uploadWorkerImage,
   getWorkersByShiftAndDate,
   getWorkerAvailability,
-  inviteWorkerToJob, // New import for inviting workers
   getInvitedJobsForWorker, // New import for fetching invited jobs
   respondToJobInvitation, // New import for responding to job invitations
   getAllWorkers,
@@ -47,7 +46,6 @@ router.get('/shift-date', sessionMiddleware, getWorkersByShiftAndDate); // Fetch
 router.get('/:workerId/availability-status', sessionMiddleware, getWorkerAvailability); // Fetch availability status
 
 // New routes for job invitations
-router.post('/invite/:workerId', sessionMiddleware, inviteWorkerToJob); // Invite a worker to a job
 router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
 router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
 router.get('/workers',getAllWorkers);

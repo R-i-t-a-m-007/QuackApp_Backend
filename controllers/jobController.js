@@ -1,10 +1,42 @@
 import Job from '../models/Job.js';
 import Worker from '../models/Worker.js'; // Import the Worker model
 import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
+import nodemailer from 'nodemailer';
+
 
 // Create a new job
 // Create a new job
 // Create a new job
+
+const sendJobRequestEmail = async (email, name, jobTitle) => {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'You\'ve been invited to a job!',
+    text: `Hello ${name},
+
+You have been invited to the job titled "${jobTitle}". Please check your app for more details.
+
+Best regards,
+The QuackApp Team`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully to worker:', email);
+  } catch (error) {
+    console.error('Error sending email to worker:', error);
+  }
+};
+
 export const createJob = async (req, res) => {
   const { title, description, location, date, shift, workersRequired } = req.body;
 
@@ -48,10 +80,11 @@ export const createJob = async (req, res) => {
         timestamp: new Date(),
         message: `You have been invited to a new job: ${title}`,
       });
-      return worker.save();
+      await worker.save(); // Save worker
+      await sendJobRequestEmail(worker.email, worker.name, title); // Send email invitation
     });
 
-    await Promise.all(updatePromises); // Wait for all workers to be updated
+    await Promise.all(updatePromises); // Wait for all updates and emails to finish
 
     res.status(201).json({ message: "Job created and workers invited successfully!", job: newJob });
   } catch (error) {
