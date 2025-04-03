@@ -9,13 +9,18 @@ export const createJob = async (req, res) => {
   const { title, description, location, date, shift, workersRequired } = req.body;
 
   // Get userCode from session (either from user or company)
-  const userCode = req.session.user ? req.session.user.userCode : req.session.company ? req.session.company.userCode : null;
+  const userCode = req.session.user 
+    ? req.session.user.userCode 
+    : req.session.company 
+    ? req.session.company.userCode 
+    : null;
 
   if (!userCode) {
-    return res.status(403).json({ message: 'Unauthorized. User code is required.' });
+    return res.status(403).json({ message: "Unauthorized. User code is required." });
   }
 
   try {
+    // Create the new job
     const newJob = new Job({
       title,
       description,
@@ -27,12 +32,30 @@ export const createJob = async (req, res) => {
     });
 
     await newJob.save();
-    res.status(201).json({ message: 'Job created successfully!', job: newJob });
+
+    // Find all workers with the same userCode
+    const workers = await Worker.find({ userCode });
+
+    // Update each worker to be invited to this job
+    const updatePromises = workers.map(async (worker) => {
+      worker.invitedJobs.push(newJob._id);
+      worker.activities.push({
+        timestamp: new Date(),
+        message: `You have been invited to a new job: ${title}`,
+      });
+      return worker.save();
+    });
+
+    // Wait for all workers to be updated
+    await Promise.all(updatePromises);
+
+    res.status(201).json({ message: "Job created and workers invited successfully!", job: newJob });
   } catch (error) {
-    console.error('Error creating job:', error);
-    res.status(500).json({ message: 'Server error while creating job.' });
+    console.error("Error creating job:", error);
+    res.status(500).json({ message: "Server error while creating job." });
   }
 };
+
 // Fetch jobs for the logged-in worker based on userCode and jobStatus false
 export const getJobsForWorker = async (req, res) => {
   const workerId = req.session.worker ? req.session.worker._id : null;
