@@ -476,18 +476,24 @@ export const removeAcceptedJob = async (req, res) => {
   const { jobId } = req.params;
   const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
 
-  try {
-    if (!workerId) {
-      return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
-    }
+  // Validate jobId
+  if (!jobId || jobId.length !== 24) {
+    return res.status(400).json({ message: 'Invalid job ID.' });
+  }
 
+  // Validate workerId
+  if (!workerId) {
+    return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
+  }
+
+  try {
     const job = await Job.findById(jobId);
     if (!job) {
       return res.status(404).json({ message: 'Job not found.' });
     }
 
     // Check if the worker is part of the job
-    if (!job.workers.includes(workerId)) {
+    if (!job.workers.map(id => id.toString()).includes(workerId.toString())) {
       return res.status(400).json({ message: 'You have not accepted this job.' });
     }
 
