@@ -164,7 +164,7 @@ export const acceptJob = async (req, res) => {
     }
 
     // Check if the worker is already in the workers array
-    if (workerId && job.workers.includes(workerId)) {
+    if (workerId && job.workers.map(id => id.toString()).includes(workerId.toString())) {
       return res.status(400).json({ message: 'You have already accepted this job.' });
     }
 
@@ -177,14 +177,12 @@ export const acceptJob = async (req, res) => {
       job.workers.push(workerId); // Add worker ID to the workers array
     }
 
-    await job.save(); // Save the updated job
-
     // Check if the number of workers matches the workersRequired
     if (job.workers.length >= job.workersRequired) {
       job.jobStatus = true; // Update jobStatus to true
     }
 
-    await job.save(); // Save the updated job again if jobStatus changed
+    await job.save(); // Save the updated job
 
     res.status(200).json({ message: 'Job accepted successfully!', job });
   } catch (error) {
@@ -192,6 +190,7 @@ export const acceptJob = async (req, res) => {
     res.status(500).json({ message: 'Server error while accepting job.' });
   }
 };
+
 
 // Decline a job invitation
 export const declineJob = async (req, res) => {

@@ -272,63 +272,6 @@ export const getInvitedJobsForWorker = async (req, res) => {
   }
 };
 
-// Accept or decline a job invitation
-export const respondToJobInvitation = async (req, res) => {
-  const { jobId, response } = req.body; // response can be 'accept' or 'decline'
-  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
-
-  console.log("Session Worker:", req.session.worker);
-  console.log("Job ID from request:", jobId);
-
-  if (!workerId) {
-    return res.status(401).json({ message: "Worker not authenticated." });
-  }
-
-  if (!jobId) {
-    return res.status(400).json({ message: "Invalid job ID." });
-  }
-
-  try {
-    const worker = await Worker.findById(workerId);
-    const job = await Job.findById(jobId);
-
-    if (!worker) {
-      return res.status(404).json({ message: "Worker not found." });
-    }
-
-    if (!job) {
-      return res.status(404).json({ message: "Job not found." });
-    }
-
-    if (response === "accept") {
-      // Add worker to the job's workers array
-      job.workers.push(workerId);
-      // Remove worker from invitedWorkers
-      job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId.toString());
-      worker.activities.push({ timestamp: new Date(), message: "Worker has accepted a job" });
-      await worker.save();
-
-      // Check if the job is now filled
-      if (job.workers.length >= job.workersRequired) {
-        job.jobStatus = true; // Mark job as filled
-      }
-    } else if (response === "decline") {
-      // Remove worker from invitedJobs
-      worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== jobId.toString());
-      worker.activities.push({ timestamp: new Date(), message: "Worker has declined a job" });
-      await worker.save();
-    }
-
-    await job.save();
-    await worker.save();
-
-    res.status(200).json({ message: `Job invitation ${response}ed successfully!`, job });
-  } catch (error) {
-    console.error("Error responding to job invitation:", error);
-    res.status(500).json({ message: "Server error while responding to job invitation." });
-  }
-};
-
 
 // Approve Worker
 export const approveWorker = async (req, res) => {

@@ -14,7 +14,6 @@ import {
   getWorkersByShiftAndDate,
   getWorkerAvailability,
   getInvitedJobsForWorker, // New import for fetching invited jobs
-  respondToJobInvitation, // New import for responding to job invitations
   getAllWorkers,
   updateWorkerDetails,
   deleteWorker,
@@ -47,7 +46,6 @@ router.get('/:workerId/availability-status', sessionMiddleware, getWorkerAvailab
 
 // New routes for job invitations
 router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
-router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
 router.get('/workers',getAllWorkers);
 router.put("/update/:workerId", updateWorkerDetails);
 router.get("/workers/:id",getWorkerById);
