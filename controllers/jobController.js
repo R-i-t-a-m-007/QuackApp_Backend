@@ -148,17 +148,15 @@ export const getCompletedJobs = async (req, res) => {
 // Accept a job
 export const acceptJob = async (req, res) => {
   const { jobId } = req.params; 
-  const workerId = req.session.worker ? req.session.worker._id : null; 
+  const workerId = req.session.worker ? req.session.worker._id : null;
 
-  // Ensure workerId is valid before proceeding
   if (!workerId) {
     return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
   }
 
   try {
-    const job = await Job.findById(jobId);
-    
-    // Debugging logs
+    const job = await Job.findById(jobId).lean(false); // Force fresh data
+
     console.log('Job Object:', job);
     console.log('Job Workers:', job ? job.workers : 'Job Not Found');
     console.log('Worker ID:', workerId);
@@ -167,13 +165,12 @@ export const acceptJob = async (req, res) => {
       return res.status(404).json({ message: 'Job not found.' });
     }
 
-    // Ensure job.workers is always an array
     job.workers = Array.isArray(job.workers) ? job.workers : [];
 
-    const workerIdStr = workerId.toString();
+    const workerIdStr = String(workerId);
 
-    // Check if the worker is already in the workers array
-    if (job.workers.map(id => id.toString()).includes(workerIdStr)) {
+    // Check if the worker already exists in the workers array
+    if (job.workers.some(id => String(id) === workerIdStr)) {
       return res.status(400).json({ message: 'You have already accepted this job.' });
     }
 
@@ -181,22 +178,24 @@ export const acceptJob = async (req, res) => {
       return res.status(400).json({ message: 'The job requirements have already been fulfilled. No more workers can be accepted.' });
     }
 
-    // Add the worker ID to the job
-    job.workers.push(workerIdStr);
+    // Use $addToSet to prevent duplicates
+    await Job.updateOne({ _id: jobId }, { $addToSet: { workers: workerIdStr } });
 
-    // Check if the number of workers matches the workersRequired
-    if (job.workers.length >= job.workersRequired) {
-      job.jobStatus = true; 
+    // Fetch the updated job
+    const updatedJob = await Job.findById(jobId).lean(false);
+
+    // If the number of workers matches the workersRequired, mark the job as completed
+    if (updatedJob.workers.length >= updatedJob.workersRequired) {
+      await Job.updateOne({ _id: jobId }, { $set: { jobStatus: true } });
     }
 
-    await job.save(); 
-
-    res.status(200).json({ message: 'Job accepted successfully!', job });
+    res.status(200).json({ message: 'Job accepted successfully!', job: updatedJob });
   } catch (error) {
     console.error('Error accepting job:', error);
     res.status(500).json({ message: 'Server error while accepting job.', error: error.message });
   }
 };
+
 
 
 
