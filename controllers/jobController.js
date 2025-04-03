@@ -148,6 +148,8 @@ export const getCompletedJobs = async (req, res) => {
 // Accept a job
 export const acceptJob = async (req, res) => {
   const { jobId } = req.params; // Get the job ID from the request parameters
+  console.log(jobId);
+  
   const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
 
   try {
