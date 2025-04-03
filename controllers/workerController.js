@@ -158,7 +158,7 @@ const sendShiftCancellationEmail = async (worker, shiftDate, shift, affectedJobs
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: "Shift Cancellation Notice",
-      text: `Hello ${user.name},
+      text: `Hello ${user.username},
 
 Worker ${worker.name} (${worker.email}) has canceled their shift on ${shiftDate} (${shift}).
 
