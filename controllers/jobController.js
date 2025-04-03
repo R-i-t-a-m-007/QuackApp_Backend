@@ -147,26 +147,33 @@ export const getCompletedJobs = async (req, res) => {
 
 // Accept a job
 export const acceptJob = async (req, res) => {
-  const { jobId } = req.params; // Get the job ID from the request parameters
-  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+  const { jobId } = req.params; 
+  const workerId = req.session.worker ? req.session.worker._id : null; 
+
+  // Ensure workerId is valid before proceeding
+  if (!workerId) {
+    return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
+  }
 
   try {
-    // Find the job by ID
     const job = await Job.findById(jobId);
-    console.log(job);
     
+    // Debugging logs
+    console.log('Job Object:', job);
+    console.log('Job Workers:', job ? job.workers : 'Job Not Found');
+    console.log('Worker ID:', workerId);
 
     if (!job) {
       return res.status(404).json({ message: 'Job not found.' });
     }
 
-    // Ensure workers is an array
-    if (!Array.isArray(job.workers)) {
-      job.workers = []; // Initialize as an empty array if it's null
-    }
+    // Ensure job.workers is always an array
+    job.workers = Array.isArray(job.workers) ? job.workers : [];
+
+    const workerIdStr = workerId.toString();
 
     // Check if the worker is already in the workers array
-    if (workerId && job.workers.map(id => id.toString()).includes(workerId.toString())) {
+    if (job.workers.map(id => id.toString()).includes(workerIdStr)) {
       return res.status(400).json({ message: 'You have already accepted this job.' });
     }
 
@@ -175,23 +182,22 @@ export const acceptJob = async (req, res) => {
     }
 
     // Add the worker ID to the job
-    if (workerId) {
-      job.workers.push(workerId); // Add worker ID to the workers array
-    }
+    job.workers.push(workerIdStr);
 
     // Check if the number of workers matches the workersRequired
     if (job.workers.length >= job.workersRequired) {
-      job.jobStatus = true; // Update jobStatus to true
+      job.jobStatus = true; 
     }
 
-    await job.save(); // Save the updated job
+    await job.save(); 
 
     res.status(200).json({ message: 'Job accepted successfully!', job });
   } catch (error) {
     console.error('Error accepting job:', error);
-    res.status(500).json({ message: 'Server error while accepting job.' });
+    res.status(500).json({ message: 'Server error while accepting job.', error: error.message });
   }
 };
+
 
 
 // Decline a job invitation
@@ -474,7 +480,7 @@ export const deleteJob = async (req, res) => {
 // Remove an accepted job (worker deletes it)
 export const removeAcceptedJob = async (req, res) => {
   const { jobId } = req.params;
-  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+  const workerId = req.session.worker ? req.session.worker._id.toString() : null; // Convert to string
 
   // Validate jobId
   if (!jobId || jobId.length !== 24) {
@@ -488,17 +494,21 @@ export const removeAcceptedJob = async (req, res) => {
 
   try {
     const job = await Job.findById(jobId);
+
     if (!job) {
       return res.status(404).json({ message: 'Job not found.' });
     }
 
+    // Ensure job.workers contains only string IDs
+    const workerIds = job.workers.map(id => id.toString());
+
     // Check if the worker is part of the job
-    if (!job.workers.map(id => id.toString()).includes(workerId.toString())) {
+    if (!workerIds.includes(workerId)) {
       return res.status(400).json({ message: 'You have not accepted this job.' });
     }
 
     // Remove the worker from the job's workers array
-    job.workers = job.workers.filter(id => id.toString() !== workerId.toString());
+    job.workers = job.workers.filter(id => id.toString() !== workerId);
 
     // If job was previously marked as completed and a worker removes themselves, re-evaluate jobStatus
     if (job.jobStatus && job.workers.length < job.workersRequired) {
@@ -513,4 +523,5 @@ export const removeAcceptedJob = async (req, res) => {
     res.status(500).json({ message: 'Server error while removing job.' });
   }
 };
+
 
