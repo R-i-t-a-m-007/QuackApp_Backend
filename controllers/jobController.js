@@ -111,6 +111,7 @@ export const getJobsForWorker = async (req, res) => {
 
     const jobs = await Job.find({
       userCode: worker.userCode || req.session.company.comp_code, // Match company userCode
+      invitedWorkers: workerId, // Only fetch jobs where the worker was invited
       workers: { $not: { $elemMatch: { $eq: workerId } } }, // Exclude jobs already accepted
     });
 
@@ -120,6 +121,7 @@ export const getJobsForWorker = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching jobs.' });
   }
 };
+
 
 
 
@@ -147,81 +149,125 @@ export const getCompletedJobs = async (req, res) => {
 
 // Accept a job
 export const acceptJob = async (req, res) => {
-  const { jobId } = req.params; // Get the job ID from the request parameters
-  console.log(jobId);
-  
-  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+  const { jobId } = req.params;
+  const workerId = req.session.worker ? req.session.worker._id : null;
+
+  console.log(`➡️ Accept Job Request Received - Job ID: ${jobId}, Worker ID: ${workerId}`);
 
   try {
-    // Find the job by ID
-    console.log(jobId);
-    
-    const job = await Job.findById(jobId);
-    console.log(job);
-    
+    if (!workerId) {
+      console.log('⛔ Unauthorized access: Worker ID missing');
+      return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
+    }
 
+    // Find the worker and remove jobId from invitedJobs
+    const worker = await Worker.findById(workerId);
+    if (!worker) {
+      console.log(`⛔ Worker not found - ID: ${workerId}`);
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    console.log(`✅ Worker found: ${workerId}, Invited Jobs: ${worker.invitedJobs}`);
+
+    // Remove jobId from worker's invitedJobs
+    worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== jobId);
+    await worker.save();
+    console.log(`🔄 Updated Worker: Removed Job ID from invitedJobs`);
+
+    // Find the job
+    const job = await Job.findById(jobId);
     if (!job) {
+      console.log(`⛔ Job not found - ID: ${jobId}`);
       return res.status(404).json({ message: 'Job not found.' });
     }
 
-    // Ensure workers is an array
-    if (!Array.isArray(job.workers)) {
-      job.workers = []; // Initialize as an empty array if it's null
-    }
+    console.log(`✅ Job found: ${jobId}, Current Workers: ${job.workers}, Workers Required: ${job.workersRequired}`);
 
-    // Check if the worker is already in the workers array
-    if (workerId && job.workers.map(id => id.toString()).includes(workerId.toString())) {
+    // Prevent duplicate acceptance
+    if (job.workers.map(id => id.toString()).includes(workerId.toString())) {
+      console.log(`⚠️ Worker ${workerId} has already accepted job ${jobId}`);
       return res.status(400).json({ message: 'You have already accepted this job.' });
     }
 
-    if (job.jobStatus === true) {
-      return res.status(400).json({ message: 'The job requirements have already been fulfilled. No more workers can be accepted.' });
-    }
+    // Add workerId to job's workers array
+    job.workers.push(workerId);
+    console.log(`🔄 Worker ${workerId} added to job ${jobId}`);
 
-    // Add the worker ID to the job
-    if (workerId) {
-      job.workers.push(workerId); // Add worker ID to the workers array
-    }
-
-    // Check if the number of workers matches the workersRequired
+    // Update jobStatus if workersRequired is met
     if (job.workers.length >= job.workersRequired) {
-      job.jobStatus = true; // Update jobStatus to true
+      job.jobStatus = true;
+      console.log(`✅ Job ${jobId} is now fully staffed and marked as completed`);
     }
 
-    await job.save(); // Save the updated job
+    await job.save();
+    console.log(`✅ Job ${jobId} updated successfully`);
 
     res.status(200).json({ message: 'Job accepted successfully!', job });
   } catch (error) {
-    console.error('Error accepting job:', error);
+    console.error('❌ Error accepting job:', error);
     res.status(500).json({ message: 'Server error while accepting job.' });
   }
 };
 
 
+
+
 // Decline a job invitation
 export const declineJob = async (req, res) => {
-  const { jobId } = req.params; // Get the job ID from the request parameters
-  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+  const { jobId } = req.params;
+  const workerId = req.session.worker ? req.session.worker._id : null;
+
+  console.log(`➡️ Decline Job Request Received - Job ID: ${jobId}, Worker ID: ${workerId}`);
 
   try {
-    // Find the job by ID
-    const job = await Job.findById(jobId);
+    if (!workerId) {
+      console.log('⛔ Unauthorized access: Worker ID missing');
+      return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
+    }
 
+    // Find the worker and remove jobId from invitedJobs
+    const worker = await Worker.findById(workerId);
+    if (!worker) {
+      console.log(`⛔ Worker not found - ID: ${workerId}`);
+      return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    console.log(`✅ Worker found: ${workerId}, Invited Jobs: ${worker.invitedJobs}`);
+
+    // Remove jobId from worker's invitedJobs
+    worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== jobId);
+    await worker.save();
+    console.log(`🔄 Updated Worker: Removed Job ID from invitedJobs`);
+
+    // Find the job
+    const job = await Job.findById(jobId);
     if (!job) {
+      console.log(`⛔ Job not found - ID: ${jobId}`);
       return res.status(404).json({ message: 'Job not found.' });
     }
 
-    // Remove worker from invitedWorkers
-    job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId.toString());
+    console.log(`✅ Job found: ${jobId}, Invited Workers: ${job.invitedWorkers}, Current Workers: ${job.workers}`);
 
-    await job.save(); // Save the updated job
+    // Remove workerId from invitedWorkers
+    job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId.toString());
+    console.log(`🔄 Worker ${workerId} removed from invitedWorkers`);
+
+    // If jobStatus was true, check if it should be reset
+    if (job.jobStatus && job.workers.length < job.workersRequired) {
+      job.jobStatus = false;
+      console.log(`⚠️ Job ${jobId} does not meet required workers anymore, setting jobStatus to false`);
+    }
+
+    await job.save();
+    console.log(`✅ Job ${jobId} updated successfully`);
 
     res.status(200).json({ message: 'Job invitation declined successfully!', job });
   } catch (error) {
-    console.error('Error declining job invitation:', error);
+    console.error('❌ Error declining job invitation:', error);
     res.status(500).json({ message: 'Server error while declining job invitation.' });
   }
 };
+
 
 // Update job status based on the number of workers
 export const updateJobStatus = async (req, res) => {
