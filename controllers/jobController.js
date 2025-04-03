@@ -97,7 +97,7 @@ export const createJob = async (req, res) => {
 // Fetch jobs for the logged-in worker based on userCode and jobStatus false
 export const getJobsForWorker = async (req, res) => {
   const workerId = req.session.worker ? req.session.worker._id : null;
-  
+
   try {
     if (!workerId) {
       return res.status(400).json({ message: 'Worker ID is required.' });
@@ -110,9 +110,8 @@ export const getJobsForWorker = async (req, res) => {
     }
 
     const jobs = await Job.find({
-      userCode: worker.userCode || req.session.company.comp_code,
-      invitedWorkers: workerId,
-      workers: { $ne: workerId },
+      userCode: worker.userCode || req.session.company.comp_code, // Match company userCode
+      workers: { $not: { $elemMatch: { $eq: workerId } } }, // Exclude jobs already accepted
     });
 
     res.status(200).json(jobs);
@@ -121,6 +120,7 @@ export const getJobsForWorker = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching jobs.' });
   }
 };
+
 
 
 
