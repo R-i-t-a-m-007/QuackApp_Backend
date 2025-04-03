@@ -154,6 +154,8 @@ export const acceptJob = async (req, res) => {
 
   try {
     // Find the job by ID
+    console.log(jobId);
+    
     const job = await Job.findById(jobId);
     console.log(job);
     
