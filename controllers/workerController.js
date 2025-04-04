@@ -619,7 +619,7 @@ export const getAllWorkers = async (req, res) => {
 export const updateWorkerDetails = async (req, res) => {
   const { workerId } = req.params;
   console.log("Worker ID received on the server:", workerId);  // Debugging line
-  const { name, email, phone, role, department, address } = req.body;
+  const { name, email, phone } = req.body;
   
   try {
     // Find the worker by their ID
@@ -632,9 +632,6 @@ export const updateWorkerDetails = async (req, res) => {
     worker.name = name || worker.name;
     worker.email = email || worker.email;
     worker.phone = phone || worker.phone;
-    worker.role = role || worker.role;
-    worker.department = department || worker.department;
-    worker.address = address || worker.address;
 
     await worker.save(); // Save the updated worker
     worker.activities.push({timestamp: new Date(), message:"Worker has been updated"});
