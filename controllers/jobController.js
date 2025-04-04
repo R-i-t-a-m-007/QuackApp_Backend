@@ -169,7 +169,6 @@ export const acceptJob = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
     }
 
-    // Find the worker
     const worker = await Worker.findById(workerId);
     if (!worker) {
       console.log(`⛔ Worker not found - ID: ${workerId}`);
@@ -177,8 +176,8 @@ export const acceptJob = async (req, res) => {
     }
 
     console.log(`✅ Worker found: ${workerId}, Invited Jobs: ${worker.invitedJobs}`);
+    console.log(`Worker Availability:`, worker.availability);
 
-    // Find the job
     const job = await Job.findById(jobId);
     if (!job) {
       console.log(`⛔ Job not found - ID: ${jobId}`);
@@ -187,8 +186,11 @@ export const acceptJob = async (req, res) => {
 
     console.log(`✅ Job found: ${jobId}, Date: ${job.date}, Shift: ${job.shift}`);
 
-    // Check if worker is available for this job's date and shift
-    const isAvailable = worker.availability.some(avail => avail.date === job.date && avail.shift === job.shift);
+    // Ensure date comparison works correctly
+    const isAvailable = worker.availability.some(avail => 
+      new Date(avail.date).toISOString().split('T')[0] === new Date(job.date).toISOString().split('T')[0] &&
+      avail.shift.toString() === job.shift.toString()
+    );
 
     if (!isAvailable) {
       console.log(`⚠️ Worker ${workerId} is not available for this job`);
@@ -225,6 +227,7 @@ export const acceptJob = async (req, res) => {
     res.status(500).json({ message: 'Server error while accepting job.' });
   }
 };
+
 
 
 
