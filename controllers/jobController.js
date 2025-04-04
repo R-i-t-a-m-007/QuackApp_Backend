@@ -184,7 +184,13 @@ export const acceptJob = async (req, res) => {
       return res.status(404).json({ message: 'Job not found.' });
     }
 
-    console.log(`✅ Job found: ${jobId}, Date: ${job.date}, Shift: ${job.shift}`);
+    console.log(`✅ Job found: ${jobId}, Date: ${job.date}, Shift: ${job.shift}, Job Status: ${job.jobStatus}`);
+
+    // ❌ If jobStatus is true, prevent acceptance
+    if (job.jobStatus) {
+      console.log(`⚠️ Job ${jobId} is already filled.`);
+      return res.status(400).json({ message: 'This job has already been filled and is no longer accepting workers.' });
+    }
 
     // Ensure date comparison works correctly
     const isAvailable = worker.availability.some(avail => 
@@ -227,6 +233,7 @@ export const acceptJob = async (req, res) => {
     res.status(500).json({ message: 'Server error while accepting job.' });
   }
 };
+
 
 
 
