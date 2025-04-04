@@ -169,7 +169,7 @@ export const acceptJob = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
     }
 
-    // Find the worker and remove jobId from invitedJobs
+    // Find the worker
     const worker = await Worker.findById(workerId);
     if (!worker) {
       console.log(`⛔ Worker not found - ID: ${workerId}`);
@@ -178,11 +178,6 @@ export const acceptJob = async (req, res) => {
 
     console.log(`✅ Worker found: ${workerId}, Invited Jobs: ${worker.invitedJobs}`);
 
-    // Remove jobId from worker's invitedJobs
-    worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== jobId);
-    await worker.save();
-    console.log(`🔄 Updated Worker: Removed Job ID from invitedJobs`);
-
     // Find the job
     const job = await Job.findById(jobId);
     if (!job) {
@@ -190,7 +185,20 @@ export const acceptJob = async (req, res) => {
       return res.status(404).json({ message: 'Job not found.' });
     }
 
-    console.log(`✅ Job found: ${jobId}, Current Workers: ${job.workers}, Workers Required: ${job.workersRequired}`);
+    console.log(`✅ Job found: ${jobId}, Date: ${job.date}, Shift: ${job.shift}`);
+
+    // Check if worker is available for this job's date and shift
+    const isAvailable = worker.availability.some(avail => avail.date === job.date && avail.shift === job.shift);
+
+    if (!isAvailable) {
+      console.log(`⚠️ Worker ${workerId} is not available for this job`);
+      return res.status(400).json({ message: 'You can only accept jobs that match your availability.' });
+    }
+
+    // Remove jobId from worker's invitedJobs
+    worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== jobId);
+    await worker.save();
+    console.log(`🔄 Updated Worker: Removed Job ID from invitedJobs`);
 
     // Prevent duplicate acceptance
     if (job.workers.map(id => id.toString()).includes(workerId.toString())) {
@@ -217,6 +225,7 @@ export const acceptJob = async (req, res) => {
     res.status(500).json({ message: 'Server error while accepting job.' });
   }
 };
+
 
 
 
