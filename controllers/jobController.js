@@ -53,11 +53,19 @@ export const createJob = async (req, res) => {
 
   try {
     // Find all workers with the same userCode
-    const workers = await Worker.find({ userCode });
+    const allWorkers = await Worker.find({ userCode });
 
-    if (workers.length === 0) {
+    if (allWorkers.length === 0) {
       return res.status(400).json({ message: "No workers found for this user code." });
     }
+
+    // Filter workers who are available for the job's date & shift
+    let availableWorkers = allWorkers.filter(worker =>
+      worker.availability.some(avail => avail.date === date && avail.shift === shift)
+    );
+
+    // If no workers are available, invite everyone
+    const invitedWorkers = availableWorkers.length > 0 ? availableWorkers : allWorkers;
 
     // Create the new job
     const newJob = new Job({
@@ -68,13 +76,13 @@ export const createJob = async (req, res) => {
       shift,
       workersRequired,
       userCode, // Store the user code of the creator
-      invitedWorkers: workers.map(worker => worker._id), // Add all workers to invitedWorkers
+      invitedWorkers: invitedWorkers.map(worker => worker._id), // Add only available workers or everyone
     });
 
     await newJob.save(); // Save job first
 
-    // Update each worker to be invited to this job
-    const updatePromises = workers.map(async (worker) => {
+    // Update each invited worker
+    const updatePromises = invitedWorkers.map(async (worker) => {
       worker.invitedJobs.push(newJob._id);
       worker.activities.push({
         timestamp: new Date(),
@@ -92,6 +100,7 @@ export const createJob = async (req, res) => {
     res.status(500).json({ message: "Server error while creating job." });
   }
 };
+
 
 
 // Fetch jobs for the logged-in worker based on userCode and jobStatus false
