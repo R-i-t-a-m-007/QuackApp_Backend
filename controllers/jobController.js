@@ -194,7 +194,7 @@ export const acceptJob = async (req, res) => {
 
     if (!isAvailable) {
       console.log(`⚠️ Worker ${workerId} is not available for this job`);
-      return res.status(400).json({ message: 'You can only accept jobs that match your availability.' });
+      return res.status(400).json({ message: 'You can only accept jobs that match your availability. Mark yourself available to accept.' });
     }
 
     // Remove jobId from worker's invitedJobs
