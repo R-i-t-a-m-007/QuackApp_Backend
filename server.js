@@ -46,7 +46,7 @@ app.use("/healthcheck", (req,res)=>{
 // Configure CORS
 app.use(
   cors({
-    origin: 'https://quackapp-admin.netlify.app',
+    origin: 'true',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true, // Allow cookies
   })
