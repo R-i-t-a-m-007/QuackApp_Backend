@@ -29,12 +29,16 @@ app.use(
     saveUninitialized: false,
     cookie: { maxAge: 1000 * 60 * 60 * 24,
       httpOnly: true,  // Prevent JS from accessing cookie
-      secure: false,   // Set to true if using HTTPS
+      secure: process.env.NODE_ENV === 'production',   // Set to true if using HTTPS
       sameSite: 'lax',
      }, // 1-day cookie
     store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
   })
 );
+
+app.use("/healthcheck", (req,res)=>{
+  res.status(200).send("ok");
+});
 
 // Configure CORS
 app.use(
