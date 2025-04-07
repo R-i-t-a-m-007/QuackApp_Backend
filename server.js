@@ -21,21 +21,24 @@ connectDB();
 
 const app = express();
 
+app.set('trust proxy', 1);
+
+
 // Configure session middleware
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 * 24,
-      httpOnly: true,  // Prevent JS from accessing cookie
-      secure: process.env.NODE_ENV === 'production',   // Set to true if using HTTPS
-      sameSite: 'lax',
-     }, // 1-day cookie
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24,
+      httpOnly: true,
+      secure: true,         // Always true, since we're using HTTPS
+      sameSite: 'None',     // Required for cross-origin
+    },
     store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
   })
 );
-
 app.use("/healthcheck", (req,res)=>{
   res.status(200).send("ok");
 });
