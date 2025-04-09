@@ -110,34 +110,43 @@ The QuackApp Team`,
   }
 };
 
-const sendJobRequestEmail = async (email, name, jobTitle) => {
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'You\'ve been invited to a job!',
-    text: `Hello ${name},
-
-You have been invited to the job titled "${jobTitle}". Please check your app for more details.
-
-Best regards,
-The QuackApp Team`,
-  };
-
+const sendAvailabilityMarkedEmail = async (worker, date, shift) => {
   try {
+    const user = await User.findOne({ userCode: worker.userCode });
+    if (!user) return;
+
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "New Shift Availability Notification",
+      text: `Hello ${user.username},
+
+Worker ${worker.name} (${worker.email}) has marked themselves available for the following shift:
+
+📅 Date: ${new Date(date).toLocaleDateString()}
+🕒 Shift: ${shift}
+
+You may now assign or invite them to jobs that match this availability.
+
+Best regards,  
+The QuackApp Team`,
+    };
+
     await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully to worker:', email);
+    console.log("Availability marked email sent to:", user.email);
   } catch (error) {
-    console.error('Error sending email to worker:', error);
+    console.error("Error sending availability email:", error);
   }
 };
+
 
 const sendShiftCancellationEmail = async (worker, shiftDate, shift, affectedJobs) => {
   try {
@@ -432,7 +441,7 @@ export const loginWorker = async (req, res) => {
 // Update worker's availability
 export const updateWorkerAvailability = async (req, res) => {
   const { workerId } = req.params;
-  const { date, shift } = req.body; // Expecting date and single shift from the request body
+  const { date, shift } = req.body;
 
   try {
     if (!req.session.worker || req.session.worker._id !== workerId) {
@@ -441,7 +450,7 @@ export const updateWorkerAvailability = async (req, res) => {
 
     const updatedWorker = await Worker.findByIdAndUpdate(
       workerId,
-      { $push: { availability: { date, shift } } }, // Push new availability with single shift
+      { $push: { availability: { date, shift } } },
       { new: true }
     );
 
@@ -449,14 +458,24 @@ export const updateWorkerAvailability = async (req, res) => {
       return res.status(404).json({ message: 'Worker not found.' });
     }
 
-    res.status(200).json({ message: 'Worker availability updated successfully.', worker: updatedWorker });
-    updatedWorker.activities.push({timestamp: new Date(), message:"Worker has marked his availability"});
+    // Log activity
+    updatedWorker.activities.push({
+      timestamp: new Date(),
+      message: `Worker marked availability for ${new Date(date).toLocaleDateString()} (${shift})`,
+    });
+
     await updatedWorker.save();
+
+    // ✉️ Send email notification to user
+    await sendAvailabilityMarkedEmail(updatedWorker, date, shift);
+
+    res.status(200).json({ message: 'Worker availability updated successfully.', worker: updatedWorker });
   } catch (error) {
     console.error('Error updating worker availability:', error);
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
 
 // Logout worker
 export const logoutWorker = async (req, res) => {
