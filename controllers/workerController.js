@@ -134,7 +134,7 @@ Worker ${worker.name} (${worker.email}) has marked themselves available for the 
 📅 Date: ${new Date(date).toLocaleDateString()}
 🕒 Shift: ${shift}
 
-You may now assign or invite them to jobs that match this availability.
+They may now accept or decline jobs that match this availability.
 
 Best regards,  
 The QuackApp Team`,
