@@ -27,6 +27,7 @@ const allowedOrigins = [
   'https://quackapp-admin.netlify.app',
   'http://localhost:3000', // admin panel dev
   undefined, // for mobile apps like Expo (they often send undefined origin)
+  'http://localhost:5173', 
 ];
 
 // Configure session middleware
