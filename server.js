@@ -23,6 +23,11 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+const allowedOrigins = [
+  'https://quackapp-admin.netlify.app',
+  'http://localhost:3000', // admin panel dev
+  undefined, // for mobile apps like Expo (they often send undefined origin)
+];
 
 // Configure session middleware
 app.use(
@@ -33,7 +38,7 @@ app.use(
     cookie: {
       maxAge: 1000 * 60 * 60 * 24,
       httpOnly: true,
-      secure: true,         // Always true, since we're using HTTPS
+      secure: process.env.NODE_ENV === 'production',   // Set to true if using HTTPS
       sameSite: 'None',     // Required for cross-origin
     },
     store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
@@ -46,7 +51,13 @@ app.use("/healthcheck", (req,res)=>{
 // Configure CORS
 app.use(
   cors({
-    origin: 'true',
+    origin: function (origin, callback) {
+      if (allowedOrigins.includes(origin) || !origin) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true, // Allow cookies
   })
