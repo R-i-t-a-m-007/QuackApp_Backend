@@ -1,5 +1,5 @@
 import express from 'express';
-import { addCompany, getCompanies, updateCompany, deleteCompany, companyLogin, logout, getLoggedInCompany, uploadCompanyImage, getCompanyCount, requestPasswordReset, resetPassword } from '../controllers/companyController.js';
+import { addCompany, getCompanies, updateCompany, deleteCompany, companyLogin, logout, getLoggedInCompany, uploadCompanyImage, getCompanyCount, requestPasswordReset, resetPassword, getCompaniesByUserId } from '../controllers/companyController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 
 const router = express.Router();
@@ -15,6 +15,8 @@ router.post('/:companyId/upload-image', sessionMiddleware, uploadCompanyImage); 
 router.get('/count', getCompanyCount);
 router.post('/forgot-password', requestPasswordReset);
 router.post('/reset-password', resetPassword);
+router.get('/by-user/:userId', getCompaniesByUserId);
+
 
 
 

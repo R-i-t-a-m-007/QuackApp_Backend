@@ -350,3 +350,16 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Server error while resetting password.' });
   }
 };
+
+export const getCompaniesByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const companies = await CompanyList.find({ user: userId });
+
+    res.status(200).json(companies);
+  } catch (error) {
+    console.error('Error fetching companies by userId:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
