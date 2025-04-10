@@ -373,24 +373,33 @@ export const updateUserDetails = async (req, res) => {
 
 // Delete User
 export const deleteUser = async (req, res) => {
-  const { userId } = req.params; // Get userId from request parameters
+  const { userId } = req.params;
 
   try {
-    // Find the user by ID
+    // Find the user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    const userCode = user.userCode;
+
     // Delete the user
     await User.findByIdAndDelete(userId);
 
-    res.status(200).json({ message: 'User deleted successfully' });
+    // Delete all workers associated with this userCode
+    const deletedWorkers = await Worker.deleteMany({ userCode });
+
+    res.status(200).json({
+      message: `User and associated workers deleted successfully.`,
+      deletedWorkersCount: deletedWorkers.deletedCount,
+    });
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).json({ message: 'Failed to delete user.' });
   }
 };
+
 
 export const getUserById = async (req, res) => {
   try {
