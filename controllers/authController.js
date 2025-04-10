@@ -391,15 +391,20 @@ export const deleteUser = async (req, res) => {
     // Delete all workers associated with this userCode
     const deletedWorkers = await Worker.deleteMany({ userCode });
 
+    // Delete all jobs associated with this userCode
+    const deletedJobs = await Job.deleteMany({ userCode });
+
     res.status(200).json({
-      message: `User and associated workers deleted successfully.`,
+      message: `User, associated workers, and jobs deleted successfully.`,
       deletedWorkersCount: deletedWorkers.deletedCount,
+      deletedJobsCount: deletedJobs.deletedCount,
     });
   } catch (error) {
     console.error('Error deleting user:', error);
-    res.status(500).json({ message: 'Failed to delete user.' });
+    res.status(500).json({ message: 'Failed to delete user and associated data.' });
   }
 };
+
 
 
 export const getUserById = async (req, res) => {
