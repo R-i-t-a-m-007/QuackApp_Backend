@@ -120,7 +120,7 @@ export const getJobsForWorker = async (req, res) => {
 
     const jobs = await Job.find({
       userCode: worker.userCode || req.session.company.comp_code, // Match company userCode
-      invitedWorkers: workerId, // Only fetch jobs where the worker was invited
+      // invitedWorkers: workerId,
       workers: { $not: { $elemMatch: { $eq: workerId } } }, // Exclude jobs already accepted
     });
 
