@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import stripeLib from 'stripe';
 import dotenv from 'dotenv';
+import Worker from '../models/Worker.js';
 
 dotenv.config();
 const stripe = stripeLib(process.env.STRIPE_SECRET_KEY);
