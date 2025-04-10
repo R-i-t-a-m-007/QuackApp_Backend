@@ -186,6 +186,46 @@ The QuackApp Team`,
   }
 };
 
+
+export const sendWorkerDeletionEmail = async (user, worker, affectedJobs) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const formattedJobs = affectedJobs.map(job => {
+      const formattedDate = new Date(job.date).toISOString().split('T')[0];
+      return `• ${job.name} on ${formattedDate} (${job.shift})`;
+    }).join('\n');
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: `Worker Deletion Notification - ${worker.name}`,
+      text: `Hello ${user.username},
+
+This is to inform you that the worker "${worker.name}" (${worker.email}) has been deleted from your account.
+
+Affected Jobs: ${affectedJobs.length}
+${formattedJobs || 'No job involvement detected.'}
+
+The jobs have been updated accordingly. Please take any necessary actions.
+
+Best Regards,  
+The QuackApp Team`,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`📧 Worker deletion email sent to ${user.email}`);
+  } catch (error) {
+    console.error('Error sending worker deletion email:', error);
+  }
+};
+
 // Add a new worker
 export const addWorker = async (req, res) => {
   const { name, email, phone, joiningDate, password, userCode } = req.body;
@@ -665,19 +705,52 @@ export const updateWorkerDetails = async (req, res) => {
 };
 
 export const deleteWorker = async (req, res) => {
-  const { workerId } = req.params; // Get workerId from request parameters
+  const { workerId } = req.params;
 
   try {
-    // Find the worker by ID
     const worker = await Worker.findById(workerId);
     if (!worker) {
       return res.status(404).json({ message: 'Worker not found' });
     }
 
-    // Delete the worker
+    const userCode = worker.userCode;
+    const user = await User.findOne({ userCode });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Associated user not found' });
+    }
+
+    const invitedJobs = await Job.find({
+      $or: [{ invitedWorkers: workerId }, { workers: workerId }],
+    });
+
+    const affectedJobs = [];
+
+    for (const job of invitedJobs) {
+      job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId);
+      job.workers = job.workers.filter(id => id.toString() !== workerId);
+
+      if (job.workers.length < job.workersRequired) {
+        job.jobStatus = false;
+      }
+
+      await job.save();
+
+      affectedJobs.push({
+        name: job.name || 'Unnamed Job',
+        date: job.date,
+        shift: job.shift,
+      });
+    }
+
     await Worker.findByIdAndDelete(workerId);
 
-    res.status(200).json({ message: 'Worker deleted successfully' });
+    await sendWorkerDeletionEmail(user, worker, affectedJobs);
+
+    res.status(200).json({
+      message: 'Worker deleted successfully and affected jobs updated.',
+      affectedJobs,
+    });
   } catch (error) {
     console.error('Error deleting worker:', error);
     res.status(500).json({ message: 'Failed to delete worker.' });
