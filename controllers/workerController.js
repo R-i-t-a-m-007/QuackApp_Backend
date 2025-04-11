@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
 // Function to send email to the worker with credentials
 const sendWorkerEmail = async (email, name, role, userCode, password) => {
@@ -462,16 +463,23 @@ export const loginWorker = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, worker.password);
-
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid user code, email, or password.' });
     }
 
+    // Set session (optional, if still using sessions in web version)
     req.session.worker = { _id: worker._id, userCode: worker.userCode };
 
-    res.status(200).json({ message: 'Login successful.', worker });
-    worker.activities.push({timestamp: new Date(), message:"Worker has logged in"});
+    // Add login activity
+    worker.activities.push({ timestamp: new Date(), message: "Worker has logged in" });
     await worker.save();
+
+    // Generate JWT token
+    const payload = { id: worker._id, userCode: worker.userCode };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Send response with token and worker data
+    res.status(200).json({ token, message: 'Login successful.', worker });
   } catch (error) {
     console.error('Error logging in worker:', error);
     res.status(500).json({ message: 'Server error.' });
