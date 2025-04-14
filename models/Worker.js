@@ -24,6 +24,7 @@ const workerSchema = new mongoose.Schema({
       timestamp: { type: Date, default: Date.now },
     },
   ],
+  expoPushToken: { type: String }
 });
 
 const Worker = mongoose.model('Worker', workerSchema);

@@ -14,6 +14,7 @@ const companyListSchema = new mongoose.Schema({
   image: { type: String, default: null }, // Field to store the company image
   resetToken: { type: String }, // New field for password reset token
   resetTokenExpire: { type: Date }, // New field for token expiration
+  expoPushToken: { type: String }
 });
 
 export default mongoose.model('CompanyList', companyListSchema);
