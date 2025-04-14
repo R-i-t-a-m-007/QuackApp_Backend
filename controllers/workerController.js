@@ -6,6 +6,8 @@ import User from '../models/User.js';
 import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { Expo } from 'expo-server-sdk';
+const expo = new Expo();
 
 // Function to send email to the worker with credentials
 const sendWorkerEmail = async (email, name, role, userCode, password) => {
@@ -822,7 +824,6 @@ export const sendMessageToWorkers = async (req, res) => {
   try {
     const { message } = req.body;
     
-    // Check if sender is a user or company
     const sender = req.session.user || req.session.company;
 
     if (!sender) {
@@ -833,16 +834,15 @@ export const sendMessageToWorkers = async (req, res) => {
       return res.status(400).json({ message: 'Message cannot be empty' });
     }
 
-    const userCode = sender.userCode; // Get userCode from session
+    const userCode = sender.userCode;
 
-    // Find all workers with the same userCode
     const workers = await Worker.find({ userCode });
 
     if (workers.length === 0) {
       return res.status(404).json({ message: 'No workers found with this code' });
     }
 
-    // Add the message to each worker's messages array
+    // Save the message to each worker
     await Promise.all(
       workers.map(worker =>
         Worker.findByIdAndUpdate(worker._id, {
@@ -851,7 +851,30 @@ export const sendMessageToWorkers = async (req, res) => {
       )
     );
 
-    res.status(200).json({ message: 'Message sent successfully to all workers.' });
+    // Prepare push notifications
+    const messages = [];
+    for (let worker of workers) {
+      const token = worker.expoPushToken;
+
+      if (Expo.isExpoPushToken(token)) {
+        messages.push({
+          to: token,
+          sound: 'default',
+          title: 'New Message',
+          body: message,
+          data: { type: 'message', message },
+        });
+      }
+    }
+
+    // Send notifications in chunks
+    const chunks = expo.chunkPushNotifications(messages);
+    for (let chunk of chunks) {
+      await expo.sendPushNotificationsAsync(chunk);
+    }
+
+    res.status(200).json({ message: 'Message and notifications sent successfully.' });
+
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ message: 'Internal server error' });
