@@ -7,7 +7,7 @@ import stripeLib from 'stripe';
 import dotenv from 'dotenv';
 import Worker from '../models/Worker.js';
 import Job from '../models/Job.js';
-import { sendPushNotification } from '../utils/sendPushNotification';  // Your push notification utility
+import { sendPushNotification } from '../utils/sendPushNotification.js';  // Your push notification utility
 
 
 dotenv.config();
