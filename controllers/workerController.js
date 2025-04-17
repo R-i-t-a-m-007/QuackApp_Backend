@@ -7,6 +7,7 @@ import CompanyList from '../models/CompanyList.js'; // Import the CompanyList mo
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { Expo } from 'expo-server-sdk';
+
 const expo = new Expo();
 
 // Function to send email to the worker with credentials
@@ -231,7 +232,7 @@ The QuackApp Team`,
 
 // Add a new worker
 export const addWorker = async (req, res) => {
-  const { name, email, phone, joiningDate, password, userCode } = req.body;
+  const { name, email, phone, joiningDate, password, userCode, expoPushToken } = req.body; // Add expoPushToken
 
   try {
     // First check if the user code exists in either User or Company collection
@@ -239,7 +240,7 @@ export const addWorker = async (req, res) => {
     const companyWithCode = await CompanyList.findOne({ comp_code: userCode });
 
     if (!userWithCode && !companyWithCode) {
-      return res.status(400).json({ message: 'User/Company with this code does not exist.' });
+      return res.status(400).json({ message: 'User  /Company with this code does not exist.' });
     }
 
     // Check if worker already exists with this email
@@ -258,10 +259,10 @@ export const addWorker = async (req, res) => {
     if (userId) {
       const user = await User.findById(userId);
       if (!user) {
-        return res.status(404).json({ message: 'User not found.' });
+        return res.status(404).json({ message: 'User  not found.' });
       }
       if (user.userCode !== userCode) {
-        return res.status(403).json({ message: 'User code does not match.' });
+        return res.status(403).json({ message: 'User  code does not match.' });
       }
     }
 
@@ -285,6 +286,7 @@ export const addWorker = async (req, res) => {
       userCode,
       approved: false,
       invitedJobs: [],
+      expoPushToken, // Store the push token
     });
 
     await newWorker.save();
@@ -295,6 +297,52 @@ export const addWorker = async (req, res) => {
 
     // Send registration email
     await sendWorkerEmail(email, name, userCode, password);
+
+    // Prepare notification message
+    const notificationMessage = `${name} has requested to join.`;
+
+    // Send notification to the user or company
+    if (userWithCode) {
+      // If the user exists, send notification to the user
+      if (userWithCode.expoPushToken) {
+        const notification = {
+          to: userWithCode.expoPushToken,
+          sound: 'default',
+          body: notificationMessage,
+          data: { 
+            workerName: name, 
+            messageContent: notificationMessage 
+          },
+        };
+
+        // Send the notification
+        try {
+          await expo.sendPushNotificationsAsync([notification]);
+        } catch (error) {
+          console.error('Error sending notification to user:', error);
+        }
+      }
+    } else if (companyWithCode) {
+      // If the company exists, send notification to the company
+      if (companyWithCode.expoPushToken) {
+        const notification = {
+          to: companyWithCode.expoPushToken,
+          sound: 'default',
+          body: notificationMessage,
+          data: { 
+            workerName: name, 
+            messageContent: notificationMessage 
+          },
+        };
+
+        // Send the notification
+        try {
+          await expo.sendPushNotificationsAsync([notification]);
+        } catch (error) {
+          console.error('Error sending notification to company:', error);
+        }
+      }
+    }
 
     res.status(201).json({ message: 'Worker registration successful. Awaiting approval.' });
   } catch (error) {
@@ -341,6 +389,24 @@ export const approveWorker = async (req, res) => {
     // Send an email to the worker notifying them of approval without credentials
     await sendApprovalEmail(worker.email, worker.name);
 
+    // Prepare and send push notification
+    if (worker.expoPushToken) {
+      const notification = {
+        to: worker.expoPushToken,
+        sound: 'default',
+        body: 'Congratulations! You have been approved.',
+        data: { username: worker.name, messageContent: 'Congratulations! You have been approved.' },
+      };
+
+      // Send the notification
+      try {
+        let ticket = await expo.sendPushNotificationsAsync([notification]);
+        console.log('Notification sent:', ticket);
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
+    }
+
     res.status(200).json({ message: 'Worker approved successfully.' });
   } catch (error) {
     console.error('Error approving worker:', error);
@@ -357,6 +423,24 @@ export const declineWorker = async (req, res) => {
 
     if (!deletedWorker) {
       return res.status(404).json({ message: 'Worker not found.' });
+    }
+
+    // Send a notification to the worker informing them of the decline
+    if (deletedWorker.expoPushToken) {
+      const notification = {
+        to: deletedWorker.expoPushToken,
+        sound: 'default',
+        body: 'We regret to inform you that your request has been declined.',
+        data: { username: deletedWorker.name, messageContent: 'Your request has been declined.' },
+      };
+
+      // Send the notification
+      try {
+        let ticket = await expo.sendPushNotificationsAsync([notification]);
+        console.log('Notification sent:', ticket);
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
     }
 
     res.status(200).json({ message: 'Worker request declined successfully.' });
@@ -451,7 +535,7 @@ export const getWorkerById = async (req, res) => {
 
 // Function to log in a worker
 export const loginWorker = async (req, res) => {
-  const { userCode, email, password } = req.body;
+  const { userCode, email, password, expoPushToken } = req.body; // Add expoPushToken
 
   try {
     const worker = await Worker.findOne({ userCode, email });
@@ -467,6 +551,12 @@ export const loginWorker = async (req, res) => {
     const isMatch = await bcrypt.compare(password, worker.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid user code, email, or password.' });
+    }
+
+    // Update the worker's push token if provided
+    if (expoPushToken) {
+      worker.expoPushToken = expoPushToken;
+      await worker.save();
     }
 
     // Set session (optional, if still using sessions in web version)
@@ -518,6 +608,30 @@ export const updateWorkerAvailability = async (req, res) => {
 
     // ✉️ Send email notification to user
     await sendAvailabilityMarkedEmail(updatedWorker, date, shift);
+
+    // Find the user by userCode
+    const user = await User.findOne({ userCode: updatedWorker.userCode }); // Use findOne to get user by userCode
+    if (user && user.expoPushToken) {
+      const notification = {
+        to: user.expoPushToken,
+        sound: 'default',
+        body: `${updatedWorker.name} has marked themselves available on ${new Date(date).toLocaleDateString()} for the ${shift} shift.`,
+        data: { 
+          username: updatedWorker.name, 
+          messageContent: `${updatedWorker.name} has marked themselves available on ${new Date(date).toLocaleDateString()} for the ${shift} shift.` 
+        },
+      };
+
+      // Send the notification
+      try {
+        let ticket = await expo.sendPushNotificationsAsync([notification]);
+        console.log('Notification sent:', ticket);
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
+    } else {
+      console.log('No Expo Push Token available for user or user not found.');
+    }
 
     res.status(200).json({ message: 'Worker availability updated successfully.', worker: updatedWorker });
   } catch (error) {
@@ -823,7 +937,8 @@ export const resetWorkerPassword = async (req, res) => {
 export const sendMessageToWorkers = async (req, res) => {
   try {
     const { message } = req.body;
-    
+
+    // Check if sender is a user or company
     const sender = req.session.user || req.session.company;
 
     if (!sender) {
@@ -834,15 +949,17 @@ export const sendMessageToWorkers = async (req, res) => {
       return res.status(400).json({ message: 'Message cannot be empty' });
     }
 
-    const userCode = sender.userCode;
+    const userCode = sender.userCode || sender.comp_code; // Get userCode from session
+    const username = sender.username || sender.name; // Assuming you have a username or companyName field
 
+    // Find all workers with the same userCode
     const workers = await Worker.find({ userCode });
 
     if (workers.length === 0) {
       return res.status(404).json({ message: 'No workers found with this code' });
     }
 
-    // Save the message to each worker
+    // Add the message to each worker's messages array
     await Promise.all(
       workers.map(worker =>
         Worker.findByIdAndUpdate(worker._id, {
@@ -851,30 +968,35 @@ export const sendMessageToWorkers = async (req, res) => {
       )
     );
 
-    // Prepare push notifications
-    const messages = [];
-    for (let worker of workers) {
-      const token = worker.expoPushToken;
+    // Prepare notifications
+    const notifiedDevices = new Set(); // Track devices that have already been notified
+    const notifications = [];
 
-      if (Expo.isExpoPushToken(token)) {
-        messages.push({
+    workers.forEach(worker => {
+      const token = worker.expoPushToken;
+      if (token && !notifiedDevices.has(token)) {
+        notifiedDevices.add(token);
+        notifications.push({
           to: token,
           sound: 'default',
-          title: 'New Message',
-          body: message,
-          data: { type: 'message', message },
+          body: `New message from ${username}: ${message}`, // Updated message format
+          data: { username: username, messageContent: message }, // Include username and message content
         });
+      }
+    });
+
+    // Send notifications
+    let chunks = expo.chunkPushNotifications(notifications);                              
+    for (let chunk of chunks) {
+      try {
+        let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+        console.log(ticketChunk);
+      } catch (error) {
+        console.error('Error sending notifications:', error);
       }
     }
 
-    // Send notifications in chunks
-    const chunks = expo.chunkPushNotifications(messages);
-    for (let chunk of chunks) {
-      await expo.sendPushNotificationsAsync(chunk);
-    }
-
-    res.status(200).json({ message: 'Message and notifications sent successfully.' });
-
+    res.status(200).json({ message: 'Message sent successfully to all workers.' });
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -957,7 +1079,31 @@ export const cancelShiftForWorker = async (req, res) => {
     await worker.save();
 
     // Send Email Notification
-    sendShiftCancellationEmail(worker, formattedShiftDate, shift, affectedJobs);
+    await sendShiftCancellationEmail(worker, formattedShiftDate, shift, affectedJobs);
+
+    // Find the user by userCode instead of userId
+    const user = await User.findOne({ userCode: worker.userCode }); // Use userCode to find the user
+    if (user && user.expoPushToken) {
+      const notification = {
+        to: user.expoPushToken,
+        sound: 'default',
+        body: `${worker.name} has canceled their availability for ${formattedShiftDate} (${shift}).`,
+        data: { 
+          username: worker.name, 
+          messageContent: `${worker.name} has canceled their availability for ${formattedShiftDate} (${shift}).` 
+        },
+      };
+
+      // Send the notification
+      try {
+        let ticket = await expo.sendPushNotificationsAsync([notification]);
+        console.log('Notification sent:', ticket);
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
+    } else {
+      console.log('No Expo Push Token available for user or user not found.');
+    }
 
     res.status(200).json({
       message: `Shift canceled successfully. Updated ${affectedJobs.length} jobs.`,

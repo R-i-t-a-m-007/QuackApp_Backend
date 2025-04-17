@@ -1,7 +1,10 @@
 import Job from '../models/Job.js';
 import Worker from '../models/Worker.js'; // Import the Worker model
+import User from '../models/User.js';
 import CompanyList from '../models/CompanyList.js'; // Import the CompanyList model
 import nodemailer from 'nodemailer';
+import { Expo } from 'expo-server-sdk'; // Ensure you have this import at the top
+const expo = new Expo();
 
 
 // Create a new job
@@ -81,6 +84,25 @@ export const createJob = async (req, res) => {
 
     await newJob.save(); // Save job first
 
+    // Prepare notifications for invited workers
+    const notifications = [];
+    const notifiedDevices = new Set(); // Track devices that have already been notified
+
+    invitedWorkers.forEach(worker => {
+      if (worker.expoPushToken && !notifiedDevices.has(worker.expoPushToken)) {
+        notifiedDevices.add(worker.expoPushToken);
+        notifications.push({
+          to: worker.expoPushToken,
+          sound: 'default',
+          body: `You have been invited to a new job: ${title}`,
+          data: { 
+            jobId: newJob._id, 
+            messageContent: `You have been invited to a new job: ${title}` 
+          },
+        });
+      }
+    });
+
     // Update each invited worker
     const updatePromises = invitedWorkers.map(async (worker) => {
       worker.invitedJobs.push(newJob._id);
@@ -93,6 +115,17 @@ export const createJob = async (req, res) => {
     });
 
     await Promise.all(updatePromises); // Wait for all updates and emails to finish
+
+    // Send notifications
+    let chunks = expo.chunkPushNotifications(notifications);
+    for (let chunk of chunks) {
+      try {
+        let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+        console.log('Notifications sent:', ticketChunk);
+      } catch (error) {
+        console.error('Error sending notifications:', error);
+      }
+    }
 
     res.status(201).json({ message: "Job created and workers invited successfully!", job: newJob });
   } catch (error) {
@@ -227,18 +260,37 @@ export const acceptJob = async (req, res) => {
     await job.save();
     console.log(`✅ Job ${jobId} updated successfully`);
 
+    // Send notification to the user about the worker accepting the job
+    const user = await User.findOne({ userCode: job.userCode }); // Use userCode to find the user
+    if (user && user.expoPushToken) {
+      const notification = {
+        to: user.expoPushToken,
+        sound: 'default',
+        body: `${worker.name} has accepted the job: ${job.title}.`,
+        data: { 
+          workerName: worker.name, 
+          jobId: job._id, 
+          messageContent: `${worker.name} has accepted the job: ${job.title}.` 
+        },
+      };
+
+      // Send the notification
+      try {
+        let ticket = await expo.sendPushNotificationsAsync([notification]);
+        console.log('Notification sent:', ticket);
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
+    } else {
+      console.log('No Expo Push Token available for user or user not found.');
+    }
+
     res.status(200).json({ message: 'Job accepted successfully!', job });
   } catch (error) {
     console.error('❌ Error accepting job:', error);
     res.status(500).json({ message: 'Server error while accepting job.' });
   }
 };
-
-
-
-
-
-
 
 // Decline a job invitation
 export const declineJob = async (req, res) => {
@@ -288,6 +340,31 @@ export const declineJob = async (req, res) => {
 
     await job.save();
     console.log(`✅ Job ${jobId} updated successfully`);
+
+    // Send notification to the user about the worker declining the job
+    const user = await User.findOne({ userCode: job.userCode }); // Use userCode to find the user
+    if (user && user.expoPushToken) {
+      const notification = {
+        to: user.expoPushToken,
+        sound: 'default',
+        body: `${worker.name} has declined the job: ${job.title}.`,
+        data: { 
+          workerName: worker.name, 
+          jobId: job._id, 
+          messageContent: `${worker.name} has declined the job: ${job.title}.` 
+        },
+      };
+
+      // Send the notification
+      try {
+        let ticket = await expo.sendPushNotificationsAsync([notification]);
+        console.log('Notification sent:', ticket);
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
+    } else {
+      console.log('No Expo Push Token available for user or user not found.');
+    }
 
     res.status(200).json({ message: 'Job invitation declined successfully!', job });
   } catch (error) {

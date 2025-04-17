@@ -7,8 +7,6 @@ import stripeLib from 'stripe';
 import dotenv from 'dotenv';
 import Worker from '../models/Worker.js';
 import Job from '../models/Job.js';
-import { sendPushNotification } from '../utils/sendPushNotification.js';  // Your push notification utility
-
 
 dotenv.config();
 const stripe = stripeLib(process.env.STRIPE_SECRET_KEY);
@@ -40,8 +38,8 @@ const generateUserCode = () => {
 };
 
 // Register User
-export const registerUser = async (req, res) => {
-  const { username, email, phone, password, expoPushToken } = req.body;
+export const registerUser  = async (req, res) => {
+  const { username, email, phone, password, expoPushToken } = req.body; // Add expoPushToken
 
   try {
     // Check if username or email already exists
@@ -70,7 +68,7 @@ export const registerUser = async (req, res) => {
     });
 
     // Create new user
-    const newUser = new User({
+    const newUser  = new User({
       username,
       email,
       phone,
@@ -78,28 +76,35 @@ export const registerUser = async (req, res) => {
       userCode,
       subscribed: true,
       stripeCustomerId: customer.id, // Store the Stripe customer ID
-      expoPushToken,  // Save the Expo Push Token
+      expoPushToken, // Store the push token
     });
 
-    await newUser.save();
+    await newUser .save();
 
     // Add activity log
-    newUser.activities.push({ timestamp: new Date(), message: 'User registered' });
-    await newUser.save();
+    newUser .activities.push({ timestamp: new Date(), message: 'User  registered' });
+    await newUser .save();
 
     // Set session for the newly registered user
-    req.session.user = { id: newUser._id, username: newUser.username };
+    req.session.user = { id: newUser ._id, username: newUser .username };
 
     // Send a welcome email
     const subject = 'Successful Registration';
-    const text = `Dear ${username},\n\nThank you for registering. We are thrilled to have you as part of our community.\n\nYour account credentials are:\n- Username: ${username}\n- Password: ${password}\n- User Code: ${userCode}\n\nPlease ensure to keep this information secure. Feel free to reach out to our support team if you need assistance.\n\nWarm regards,\nThe QuackApp Team`;
+    const text = `Dear ${username},
+
+Thank you for registering. We are thrilled to have you as part of our community.
+    
+Your account credentials are:
+- Username: ${username}
+- Password: ${password}
+- User Code: ${userCode}
+
+Please ensure to keep this information secure. Feel free to reach out to our support team if you need assistance.
+
+Warm regards,  
+The QuackApp Team`;
 
     await sendEmail(email, subject, text);
-
-    // Send push notification
-    if (expoPushToken) {
-      await sendPushNotification(expoPushToken, 'Welcome to The QuackApp!', 'Your registration was successful!', { userId: newUser._id });
-    }
 
     return res.status(200).json({ message: 'Registration successful', user: req.session.user });
   } catch (error) {
@@ -110,15 +115,15 @@ export const registerUser = async (req, res) => {
 
 
 // Login User
-export const loginUser = async (req, res) => {
-  const { username, password, expoPushToken } = req.body;  // Added expoPushToken
+export const loginUser  = async (req, res) => {
+  const { username, password, expoPushToken } = req.body; // Add expoPushToken
 
   try {
     // Find the user by username
     const user = await User.findOne({ username });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials.' });
+      return res.status (400).json({ message: 'Invalid credentials.' });
     }
 
     // Compare passwords
@@ -127,27 +132,20 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials.' });
     }
 
-    // Set session
-    req.session.user = { id: user._id, username: user.username, userCode: user.userCode };
-
-    // Update the expoPushToken if provided
+    // Update the user's push token if provided
     if (expoPushToken) {
-      user.expoPushToken = expoPushToken;  // Save the new token
+      user.expoPushToken = expoPushToken;
       await user.save();
     }
 
-    // Add login activity log
-    user.activities.push({ timestamp: new Date(), message: 'User logged in' });
+    // Set session
+    req.session.user = { id: user._id, username: user.username, userCode: user.userCode };
+    user.activities.push({ timestamp: new Date(), message: 'User  logged in' });
     await user.save();
 
     // Generate JWT
     const payload = { id: user._id, username: user.username, userCode: user.userCode };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-    // Send push notification
-    if (expoPushToken) {
-      await sendPushNotification(expoPushToken, 'Welcome Back!', 'You have successfully logged in!', { userId: user._id });
-    }
 
     res.json({ token, message: 'Login successful!', user: req.session.user });
   } catch (error) {
@@ -155,7 +153,6 @@ export const loginUser = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
-
 
 // Logout User
 export const logoutUser  = async (req, res) => {

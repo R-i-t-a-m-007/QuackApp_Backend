@@ -23,7 +23,7 @@ const UserSchema = new mongoose.Schema({
   stripeCustomerId: { type: String, required: true },
   stripeSubscriptionId: { type: String, default: null },
   subscriptionEndDate: { type: Date, default: null },
-  expoPushToken: { type: String }
+  expoPushToken: { type: String, default: null }, // Add this line
 });
 
 export default mongoose.model('User', UserSchema);
