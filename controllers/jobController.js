@@ -40,6 +40,99 @@ The QuackApp Team`,
   }
 };
 
+const sendJobAcceptedEmail = async (email, workerName, jobTitle, jobDate, jobShift) => {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Job Accepted Notification',
+    text: `Hello,
+
+${workerName} has accepted the job "${jobTitle}" scheduled on ${jobDate} for the ${jobShift} shift.
+
+You can check the app for more details.
+
+Best regards,
+The QuackApp Team`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('📧 Job accepted email sent to user:', email);
+  } catch (error) {
+    console.error('❌ Error sending job accepted email:', error);
+  }
+};
+
+const sendJobDeclinedEmail = async (email, workerName, jobTitle, jobDate, jobShift) => {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Job Declined Notification',
+    text: `Hello,
+
+${workerName} has declined the job "${jobTitle}" scheduled on ${jobDate} for the ${jobShift} shift.
+
+You may want to invite more workers if needed.
+
+Best regards,
+The QuackApp Team`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('📧 Job declined email sent to user:', email);
+  } catch (error) {
+    console.error('❌ Error sending job declined email:', error);
+  }
+};
+
+const sendJobRemovedEmail = async (to, workerName, jobTitle, jobDate, shift) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject: `Job Update - ${workerName} Removed from Job`,
+    html: `
+      <h3>Job Removal Notice</h3>
+      <p><strong>${workerName}</strong> has removed themselves from the job: <strong>${jobTitle}</strong>.</p>
+      <p>Date: <strong>${jobDate}</strong></p>
+      <p>Shift: <strong>${shift}</strong></p>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`📧 Job removal email sent to ${to}`);
+  } catch (error) {
+    console.error('❌ Error sending job removal email:', error);
+  }
+};
+
+
+
 export const createJob = async (req, res) => {
   const { title, description, location, date, shift, workersRequired } = req.body;
 
@@ -232,7 +325,7 @@ export const acceptJob = async (req, res) => {
     );
 
     if (!isAvailable) {
-      console.log(`⚠️ Worker ${workerId} is not available for this job`);
+      console.log(`⚠️ Worker ${workerId} is not available for this job`);                               
       return res.status(400).json({ message: 'You can only accept jobs that match your availability. Mark yourself available to accept.' });
     }
 
@@ -281,6 +374,15 @@ export const acceptJob = async (req, res) => {
       } catch (error) {
         console.error('Error sending notification:', error);
       }
+
+      await sendJobAcceptedEmail(
+        user.email,
+        worker.name,
+        job.title,
+        new Date(job.date).toLocaleDateString(),
+        job.shift
+      );
+
     } else {
       console.log('No Expo Push Token available for user or user not found.');
     }
@@ -362,6 +464,15 @@ export const declineJob = async (req, res) => {
       } catch (error) {
         console.error('Error sending notification:', error);
       }
+
+      await sendJobDeclinedEmail(
+        user.email,
+        worker.name,
+        job.title,
+        new Date(job.date).toLocaleDateString(),
+        job.shift
+      );
+
     } else {
       console.log('No Expo Push Token available for user or user not found.');
     }
@@ -635,14 +746,12 @@ export const deleteJob = async (req, res) => {
 // Remove an accepted job (worker deletes it)
 export const removeAcceptedJob = async (req, res) => {
   const { jobId } = req.params;
-  const workerId = req.session.worker ? req.session.worker._id : null; // Get the logged-in worker ID from the session
+  const workerId = req.session.worker ? req.session.worker._id : null;
 
-  // Validate jobId
   if (!jobId || jobId.length !== 24) {
     return res.status(400).json({ message: 'Invalid job ID.' });
   }
 
-  // Validate workerId
   if (!workerId) {
     return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
   }
@@ -653,20 +762,31 @@ export const removeAcceptedJob = async (req, res) => {
       return res.status(404).json({ message: 'Job not found.' });
     }
 
-    // Check if the worker is part of the job
     if (!job.workers.map(id => id.toString()).includes(workerId.toString())) {
       return res.status(400).json({ message: 'You have not accepted this job.' });
     }
 
-    // Remove the worker from the job's workers array
     job.workers = job.workers.filter(id => id.toString() !== workerId.toString());
 
-    // If job was previously marked as completed and a worker removes themselves, re-evaluate jobStatus
     if (job.jobStatus && job.workers.length < job.workersRequired) {
-      job.jobStatus = false; // Set back to false if workers drop below required count
+      job.jobStatus = false;
     }
 
-    await job.save(); // Save the updated job
+    await job.save();
+
+    // ✅ Send email to user
+    const worker = await Worker.findById(workerId);
+    const user = await User.findOne({ userCode: job.userCode });
+
+    if (user && worker) {
+      await sendJobRemovedEmail(
+        user.email,
+        worker.name,
+        job.title,
+        new Date(job.date).toLocaleDateString(),
+        job.shift
+      );
+    }
 
     res.status(200).json({ message: 'Job removed successfully!', job });
   } catch (error) {
@@ -674,4 +794,5 @@ export const removeAcceptedJob = async (req, res) => {
     res.status(500).json({ message: 'Server error while removing job.' });
   }
 };
+
 
