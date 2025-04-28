@@ -7,6 +7,11 @@ import CompanyList from '../models/CompanyList.js'; // Import the CompanyList mo
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { Expo } from 'expo-server-sdk';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const expo = new Expo();
 
@@ -26,20 +31,23 @@ const sendWorkerEmail = async (email, name, role, userCode, password) => {
     subject: 'Welcome to the Company',
     text: `Hello ${name},
 
-Welcome to the company! Your role is: ${role}.
-Your credentials are:
+Welcome to the Quack APP!  
 
-User  Code: ${userCode}
+ 
+Your login credentials are: 
+ 
+UserCode: ${userCode} 
 Password: ${password}
-
+ 
 Please keep these credentials safe. 
+ 
+Your account has been created and is waiting for approval by your company. We will let you know once your account is active. 
 
-Please wait for your approval, and we will let you know once your account is active.
-
-We are excited to have you on board.
-
-Best regards,
-The QuackApp Team`,
+ 
+We are excited to have you on board. 
+ 
+Best regards, 
+The QuackApp Team `,
   };
 
   try {
@@ -63,21 +71,37 @@ const sendApprovalEmail = async (email, name) => {
     from: process.env.EMAIL_USER,
     to: email,
     subject: 'Your Worker Registration has been Approved',
-    text: `Hello ${name},
+    html: `
+      <p>Hello <strong>${name}</strong>,</p>
 
-Congratulations! Your registration has been approved! You can now log in using your credentials.
+      <p>Congratulations! Your registration has been approved! You can now log in to your account using your credentials.</p>
 
-Please follow the previous registration email for your User Code and Password.
+      <p>Please refer to the previous registration email for your User Code and Password.</p>
 
-Best regards,
-The QuackApp Team`,
+      <p>
+        For a detailed, easy-to-follow video explaining how the Quack App works, please click the link below or simply scan the QR code (don’t worry, it's only a few minutes long):
+      </p>
+
+      <p><a href="https://www.youtube.com/watch?v=P0zX9bNR3H0" target="_blank">Watch the video on YouTube</a></p>
+
+      <p><img src="cid:quackqr" style="width: 200px; height: auto;" /></p>
+
+      <p>Best regards,<br/>The QuackApp Team</p>
+    `,
+    attachments: [
+      {
+        filename: 'qr-code.jpg',
+        path: path.join(__dirname, '../assets/qr-code.jpg'), // Adjust path as needed
+        cid: 'quackqr', // Same as the cid in <img src="cid:quackqr" />
+      },
+    ],
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Approval email sent to worker:', email);
+    console.log('✅ Approval email sent to worker:', email);
   } catch (error) {
-    console.error('Error sending approval email to worker:', error);
+    console.error('❌ Error sending approval email to worker:', error);
   }
 };
 
@@ -117,7 +141,24 @@ The QuackApp Team`,
 const sendAvailabilityMarkedEmail = async (worker, date, shift) => {
   try {
     const user = await User.findOne({ userCode: worker.userCode });
-    if (!user) return;
+
+    let recipientEmail = null;
+    let recipientName = null;
+
+    if (user) {
+      recipientEmail = user.email;
+      recipientName = user.username;
+    } else {
+      // Fallback to company email if user is not found
+      const company = await CompanyList.findOne({ comp_code: worker.userCode });
+      if (!company) {
+        console.log('No user or company found for availability notification.');
+        return;
+      }
+
+      recipientEmail = company.email;
+      recipientName = company.name || 'Company';
+    }
 
     const transporter = nodemailer.createTransport({
       service: "Gmail",
@@ -129,9 +170,9 @@ const sendAvailabilityMarkedEmail = async (worker, date, shift) => {
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: user.email,
+      to: recipientEmail,
       subject: "New Shift Availability Notification",
-      text: `Hello ${user.username},
+      text: `Hello ${recipientName},
 
 Worker ${worker.name} (${worker.email}) has marked themselves available for the following shift:
 
@@ -145,20 +186,38 @@ The QuackApp Team`,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log("Availability marked email sent to:", user.email);
+    console.log("Availability marked email sent to:", recipientEmail);
   } catch (error) {
     console.error("Error sending availability email:", error);
   }
 };
 
 
+
 const sendShiftCancellationEmail = async (worker, shiftDate, shift, affectedJobs) => {
   try {
-    // Find user associated with worker
+    // Try to find the user first
     const user = await User.findOne({ userCode: worker.userCode });
-    if (!user) return;
 
-    // Create Nodemailer Transporter Inside Function
+    let recipientEmail = null;
+    let recipientName = null;
+
+    if (user) {
+      recipientEmail = user.email;
+      recipientName = user.username;
+    } else {
+      // If user is not found, try to find the company instead
+      const company = await CompanyList.findOne({ comp_code: worker.userCode });
+      if (!company) {
+        console.log('No user or company found for shift cancellation notification.');
+        return;
+      }
+
+      recipientEmail = company.email;
+      recipientName = company.name || 'Company';
+    }
+
+    // Create Nodemailer Transporter
     const transporter = nodemailer.createTransport({
       service: "Gmail",
       auth: {
@@ -169,9 +228,9 @@ const sendShiftCancellationEmail = async (worker, shiftDate, shift, affectedJobs
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: user.email,
+      to: recipientEmail,
       subject: "Shift Cancellation Notice",
-      text: `Hello ${user.username},
+      text: `Hello ${recipientName},
 
 Worker ${worker.name} (${worker.email}) has canceled their shift on ${shiftDate} (${shift}).
 
@@ -184,15 +243,71 @@ The QuackApp Team`,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log("Shift cancellation email sent to:", user.email);
+    console.log("Shift cancellation email sent to:", recipientEmail);
   } catch (error) {
     console.error("Error sending shift cancellation email:", error);
   }
 };
 
+export const sendJobAvailableEmail = async (email, name, jobTitle, date, shift) => {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Job Now Available!',
+    html: `
+      <p>Hello ${name},</p>
+
+      <p>A job that matches your company is now available for you to accept:</p>
+
+      <ul>
+        <li><strong>Job Title:</strong> ${jobTitle}</li>
+        <li><strong>Date:</strong> ${date}</li>
+        <li><strong>Shift:</strong> ${shift}</li>
+      </ul>
+
+      <p>Please log in to the QuackApp to view and accept the job if you're interested.</p>
+
+      <p>Best regards,<br/>The QuackApp Team</p>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`📧 Job availability email sent to ${email}`);
+  } catch (error) {
+    console.error(`❌ Error sending job availability email to ${email}:`, error);
+  }
+};
 
 export const sendWorkerDeletionEmail = async (user, worker, affectedJobs) => {
   try {
+    // Determine recipient
+    let recipientEmail = null;
+    let recipientName = null;
+
+    if (user) {
+      recipientEmail = user.email;
+      recipientName = user.username;
+    } else {
+      const company = await CompanyList.findOne({ comp_code: worker.userCode });
+      if (!company) {
+        console.log('No user or company found for worker deletion notification.');
+        return;
+      }
+
+      recipientEmail = company.email;
+      recipientName = company.name || 'Company';
+    }
+
+    // Create Nodemailer Transporter
     const transporter = nodemailer.createTransport({
       service: 'Gmail',
       auth: {
@@ -201,16 +316,18 @@ export const sendWorkerDeletionEmail = async (user, worker, affectedJobs) => {
       },
     });
 
+    // Format affected jobs
     const formattedJobs = affectedJobs.map(job => {
       const formattedDate = new Date(job.date).toISOString().split('T')[0];
       return `• ${job.name} on ${formattedDate} (${job.shift})`;
     }).join('\n');
 
+    // Compose mail
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: user.email,
+      to: recipientEmail,
       subject: `Worker Deletion Notification - ${worker.name}`,
-      text: `Hello ${user.username},
+      text: `Hello ${recipientName},
 
 This is to inform you that the worker "${worker.name}" (${worker.email}) has been deleted from your account.
 
@@ -224,11 +341,12 @@ The QuackApp Team`,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`📧 Worker deletion email sent to ${user.email}`);
+    console.log(`📧 Worker deletion email sent to ${recipientEmail}`);
   } catch (error) {
     console.error('Error sending worker deletion email:', error);
   }
 };
+
 
 // Add a new worker
 export const addWorker = async (req, res) => {
@@ -535,7 +653,7 @@ export const getWorkerById = async (req, res) => {
 
 // Function to log in a worker
 export const loginWorker = async (req, res) => {
-  const { userCode, email, password, expoPushToken } = req.body; // Add expoPushToken
+  const { userCode, email, password, expoPushToken } = req.body;
 
   try {
     const worker = await Worker.findOne({ userCode, email });
@@ -555,16 +673,16 @@ export const loginWorker = async (req, res) => {
 
     // Update the worker's push token if provided
     if (expoPushToken) {
-      worker.expoPushToken = expoPushToken;
-      await worker.save();
+      await Worker.findByIdAndUpdate(worker._id, { expoPushToken });
     }
 
     // Set session (optional, if still using sessions in web version)
     req.session.worker = { _id: worker._id, userCode: worker.userCode };
 
     // Add login activity
-    worker.activities.push({ timestamp: new Date(), message: "Worker has logged in" });
-    await worker.save();
+    await Worker.findByIdAndUpdate(worker._id, {
+      $push: { activities: { timestamp: new Date(), message: "Worker has logged in" } }
+    });
 
     // Generate JWT token
     const payload = { id: worker._id, userCode: worker.userCode };
@@ -577,6 +695,7 @@ export const loginWorker = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
 
 // Update worker's availability
 export const updateWorkerAvailability = async (req, res) => {
@@ -854,6 +973,8 @@ export const deleteWorker = async (req, res) => {
       job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId);
       job.workers = job.workers.filter(id => id.toString() !== workerId);
 
+      const jobWasFilled = job.jobStatus;
+
       if (job.workers.length < job.workersRequired) {
         job.jobStatus = false;
       }
@@ -865,6 +986,48 @@ export const deleteWorker = async (req, res) => {
         date: job.date,
         shift: job.shift,
       });
+
+      // 🔔 If job became available again after worker deletion
+      if (jobWasFilled && !job.jobStatus) {
+        const formattedDate = new Date(job.date).toISOString().split("T")[0];
+
+        const workersToNotify = await Worker.find({ userCode: job.userCode });
+
+        for (const eligibleWorker of workersToNotify) {
+          // 📬 Push notification
+          if (eligibleWorker.expoPushToken) {
+            const notification = {
+              to: eligibleWorker.expoPushToken,
+              sound: 'default',
+              body: `A job "${job.title}" on ${formattedDate} (${job.shift}) is now available!`,
+              data: {
+                jobId: job._id.toString(),
+                messageContent: `A job "${job.title}" on ${formattedDate} (${job.shift}) is now available.`,
+              },
+            };
+
+            try {
+              await expo.sendPushNotificationsAsync([notification]);
+              console.log(`📢 Sent availability notification to ${eligibleWorker.name}`);
+            } catch (err) {
+              console.error(`❌ Error notifying ${eligibleWorker.name}:`, err);
+            }
+          }
+
+          // 📧 Email
+          try {
+            await sendJobAvailableEmail(
+              eligibleWorker.email,
+              eligibleWorker.name,
+              job.title,
+              formattedDate,
+              job.shift
+            );
+          } catch (emailErr) {
+            console.error(`❌ Error sending email to ${eligibleWorker.email}:`, emailErr);
+          }
+        }
+      }
     }
 
     await Worker.findByIdAndDelete(workerId);
@@ -880,6 +1043,7 @@ export const deleteWorker = async (req, res) => {
     res.status(500).json({ message: 'Failed to delete worker.' });
   }
 };
+
 
 export const requestWorkerPasswordReset = async (req, res) => {
   const { email } = req.body;
@@ -1063,10 +1227,53 @@ export const cancelShiftForWorker = async (req, res) => {
         job.workers = job.workers.filter(id => id.toString() !== workerId);
         job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId);
 
-        job.jobStatus = job.workers.length >= job.workersRequired;
+        // Track previous status
+        const jobWasFilled = job.jobStatus;
 
+        // Update job status
+        job.jobStatus = job.workers.length >= job.workersRequired;
         await job.save();
         affectedJobs.push(job._id);
+
+        // 🔔 Notify all workers with matching userCode if job became available again
+        if (jobWasFilled && !job.jobStatus) {
+          const allWorkers = await Worker.find({ userCode: job.userCode });
+
+          for (const w of allWorkers) {
+            // Push Notification
+            if (w.expoPushToken) {
+              const notification = {
+                to: w.expoPushToken,
+                sound: 'default',
+                body: `Job "${job.title}" on ${formattedShiftDate} (${shift}) is now available!`,
+                data: {
+                  jobId: job._id.toString(),
+                  messageContent: `Job "${job.title}" on ${formattedShiftDate} (${shift}) is now available.`,
+                },
+              };
+
+              try {
+                await expo.sendPushNotificationsAsync([notification]);
+                console.log(`📢 Sent availability notification to ${w.name}`);
+              } catch (err) {
+                console.error(`❌ Error notifying ${w.name}:`, err);
+              }
+            }
+
+            // Email Notification
+            try {
+              await sendJobAvailableEmail(
+                w.email,
+                w.name,
+                job.title,
+                formattedShiftDate,
+                shift
+              );
+            } catch (err) {
+              console.error(`📧 Failed to send availability email to ${w.email}:`, err);
+            }
+          }
+        }
       }
     }
 
@@ -1078,31 +1285,28 @@ export const cancelShiftForWorker = async (req, res) => {
 
     await worker.save();
 
-    // Send Email Notification
+    // Send cancellation email to admin/user
     await sendShiftCancellationEmail(worker, formattedShiftDate, shift, affectedJobs);
 
-    // Find the user by userCode instead of userId
-    const user = await User.findOne({ userCode: worker.userCode }); // Use userCode to find the user
+    // Notify user who owns the worker
+    const user = await User.findOne({ userCode: worker.userCode });
     if (user && user.expoPushToken) {
       const notification = {
         to: user.expoPushToken,
         sound: 'default',
         body: `${worker.name} has canceled their availability for ${formattedShiftDate} (${shift}).`,
-        data: { 
-          username: worker.name, 
-          messageContent: `${worker.name} has canceled their availability for ${formattedShiftDate} (${shift}).` 
+        data: {
+          username: worker.name,
+          messageContent: `${worker.name} has canceled their availability for ${formattedShiftDate} (${shift}).`
         },
       };
 
-      // Send the notification
       try {
         let ticket = await expo.sendPushNotificationsAsync([notification]);
-        console.log('Notification sent:', ticket);
+        console.log('📨 Notification sent to user:', ticket);
       } catch (error) {
-        console.error('Error sending notification:', error);
+        console.error('❌ Error sending notification to user:', error);
       }
-    } else {
-      console.log('No Expo Push Token available for user or user not found.');
     }
 
     res.status(200).json({
@@ -1110,10 +1314,12 @@ export const cancelShiftForWorker = async (req, res) => {
       affectedJobs,
     });
   } catch (error) {
-    console.error("Error canceling shift:", error);
+    console.error("❌ Error canceling shift:", error);
     res.status(500).json({ message: "Server error while canceling shift." });
   }
 };
+
+
 
 export const getWorkerShifts = async (req, res) => {
   try {

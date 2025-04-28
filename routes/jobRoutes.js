@@ -18,7 +18,8 @@ import {
   getJobDetailsById,
   updateJob,
   deleteJob,
-  removeAcceptedJob, // New import for responding to job invitations
+  removeAcceptedJob,
+  getAssignedWorkersForJob, // New import for responding to job invitations
 } from '../controllers/jobController.js';
 import { sessionMiddleware } from '../middlewares/sessionMiddleware.js';
 const router = express.Router();
@@ -43,6 +44,8 @@ router.post('/invite/:jobId', sessionMiddleware, inviteWorkersToJob); // Invite 
 router.get('/invited-jobs', sessionMiddleware, getInvitedJobsForWorker); // Fetch jobs that a worker has been invited to
 router.post('/respond-invitation', sessionMiddleware, respondToJobInvitation); // Respond to job invitation
 router.put('/remove-accepted/:jobId', sessionMiddleware, removeAcceptedJob);
+router.get('/assigned-workers/:jobId', getAssignedWorkersForJob);
+
 
 
 

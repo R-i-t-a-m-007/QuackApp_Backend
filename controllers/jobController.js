@@ -6,10 +6,34 @@ import nodemailer from 'nodemailer';
 import { Expo } from 'expo-server-sdk'; // Ensure you have this import at the top
 const expo = new Expo();
 
+const sendJobAvailableEmail = async (to, workerName, jobTitle, jobDate, shift) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
 
-// Create a new job
-// Create a new job
-// Create a new job
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject: `New Job Available - ${jobTitle}`,
+    html: `
+      <h3>New Job Available!</h3>
+      <p>Hi <strong>${workerName}</strong>,</p>
+      <p>A job titled <strong>${jobTitle}</strong> has just become available.</p>
+      <p><strong>Date:</strong> ${jobDate}</p>
+      <p><strong>Shift:</strong> ${shift}</p>
+      <p>Please check your app and accept if you're interested.</p>
+      <br/>
+      <p>Thanks,<br/>The QuackApp Team</p>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 
 const sendJobRequestEmail = async (email, name, jobTitle) => {
   const transporter = nodemailer.createTransport({
@@ -26,10 +50,16 @@ const sendJobRequestEmail = async (email, name, jobTitle) => {
     subject: 'You\'ve been invited to a job!',
     text: `Hello ${name},
 
-You have been invited to the job titled "${jobTitle}". Please check your app for more details.
+Quack Quack!  
 
-Best regards,
-The QuackApp Team`,
+Your company has just posted a shift that you maybe interested in: "${jobTitle}" 
+
+ Please check your app for more details. Remember, the first person to log in and accept, gets the shift!  
+ 
+Best regards, 
+
+ 
+The QuackApp Team `,
   };
 
   try {
@@ -40,92 +70,145 @@ The QuackApp Team`,
   }
 };
 
-const sendJobAcceptedEmail = async (email, workerName, jobTitle, jobDate, jobShift) => {
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+const sendJobAcceptedEmail = async (userCode, workerName, jobTitle, jobDate, jobShift) => {
+  try {
+    let recipientEmail = null;
+    let recipientName = null;
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Job Accepted Notification',
-    text: `Hello,
+    const user = await User.findOne({ userCode });
+    if (user) {
+      recipientEmail = user.email;
+      recipientName = user.username || 'User';
+    } else {
+      const company = await CompanyList.findOne({ comp_code: userCode });
+      if (company) {
+        recipientEmail = company.email;
+        recipientName = company.name || 'Company';
+      } else {
+        console.log('No user or company found for job acceptance notification.');
+        return;
+      }
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: recipientEmail,
+      subject: 'Job Accepted Notification',
+      text: `Hello ${recipientName},
 
 ${workerName} has accepted the job "${jobTitle}" scheduled on ${jobDate} for the ${jobShift} shift.
 
 You can check the app for more details.
 
-Best regards,
+Best regards,  
 The QuackApp Team`,
-  };
+    };
 
-  try {
     await transporter.sendMail(mailOptions);
-    console.log('📧 Job accepted email sent to user:', email);
+    console.log('📧 Job accepted email sent to:', recipientEmail);
   } catch (error) {
     console.error('❌ Error sending job accepted email:', error);
   }
 };
+const sendJobDeclinedEmail = async (userCode, workerName, jobTitle, jobDate, jobShift) => {
+  try {
+    let recipientEmail = null;
+    let recipientName = null;
 
-const sendJobDeclinedEmail = async (email, workerName, jobTitle, jobDate, jobShift) => {
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+    const user = await User.findOne({ userCode });
+    if (user) {
+      recipientEmail = user.email;
+      recipientName = user.username || 'User';
+    } else {
+      const company = await CompanyList.findOne({ comp_code: userCode });
+      if (company) {
+        recipientEmail = company.email;
+        recipientName = company.name || 'Company';
+      } else {
+        console.log('❌ No user or company found to notify for job decline');
+        return;
+      }
+    }
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Job Declined Notification',
-    text: `Hello,
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: recipientEmail,
+      subject: 'Job Declined Notification',
+      text: `Hello ${recipientName},
 
 ${workerName} has declined the job "${jobTitle}" scheduled on ${jobDate} for the ${jobShift} shift.
 
 You may want to invite more workers if needed.
 
-Best regards,
+Best regards,  
 The QuackApp Team`,
-  };
+    };
 
-  try {
     await transporter.sendMail(mailOptions);
-    console.log('📧 Job declined email sent to user:', email);
+    console.log('📧 Job declined email sent to:', recipientEmail);
   } catch (error) {
     console.error('❌ Error sending job declined email:', error);
   }
 };
 
-const sendJobRemovedEmail = async (to, workerName, jobTitle, jobDate, shift) => {
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to,
-    subject: `Job Update - ${workerName} Removed from Job`,
-    html: `
-      <h3>Job Removal Notice</h3>
-      <p><strong>${workerName}</strong> has removed themselves from the job: <strong>${jobTitle}</strong>.</p>
-      <p>Date: <strong>${jobDate}</strong></p>
-      <p>Shift: <strong>${shift}</strong></p>
-    `,
-  };
-
+const sendJobRemovedEmail = async (userCode, workerName, jobTitle, jobDate, shift) => {
   try {
+    let recipientEmail = null;
+    let recipientName = null;
+
+    const user = await User.findOne({ userCode });
+    if (user) {
+      recipientEmail = user.email;
+      recipientName = user.username || 'User';
+    } else {
+      const company = await CompanyList.findOne({ comp_code: userCode });
+      if (company) {
+        recipientEmail = company.email;
+        recipientName = company.name || 'Company';
+      } else {
+        console.log('❌ No user or company found to notify for job removal');
+        return;
+      }
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: recipientEmail,
+      subject: `Job Update - ${workerName} Removed from Job`,
+      html: `
+        <h3>Job Removal Notice</h3>
+        <p><strong>${workerName}</strong> has removed themselves from the job: <strong>${jobTitle}</strong>.</p>
+        <p>Date: <strong>${jobDate}</strong></p>
+        <p>Shift: <strong>${shift}</strong></p>
+      `,
+    };
+
     await transporter.sendMail(mailOptions);
-    console.log(`📧 Job removal email sent to ${to}`);
+    console.log(`📧 Job removal email sent to ${recipientEmail}`);
   } catch (error) {
     console.error('❌ Error sending job removal email:', error);
   }
@@ -376,7 +459,7 @@ export const acceptJob = async (req, res) => {
       }
 
       await sendJobAcceptedEmail(
-        user.email,
+        job.userCode, // this will be used to find user or fallback to company
         worker.name,
         job.title,
         new Date(job.date).toLocaleDateString(),
@@ -466,7 +549,7 @@ export const declineJob = async (req, res) => {
       }
 
       await sendJobDeclinedEmail(
-        user.email,
+        job.userCode,
         worker.name,
         job.title,
         new Date(job.date).toLocaleDateString(),
@@ -766,26 +849,69 @@ export const removeAcceptedJob = async (req, res) => {
       return res.status(400).json({ message: 'You have not accepted this job.' });
     }
 
+    const jobWasFilled = job.jobStatus;
+
+    // Remove the worker from the job
     job.workers = job.workers.filter(id => id.toString() !== workerId.toString());
-
-    if (job.jobStatus && job.workers.length < job.workersRequired) {
-      job.jobStatus = false;
-    }
-
+    job.jobStatus = job.workers.length >= job.workersRequired;
     await job.save();
 
-    // ✅ Send email to user
     const worker = await Worker.findById(workerId);
     const user = await User.findOne({ userCode: job.userCode });
 
-    if (user && worker) {
+    if (worker) {
       await sendJobRemovedEmail(
-        user.email,
+        job.userCode,
         worker.name,
         job.title,
         new Date(job.date).toLocaleDateString(),
         job.shift
       );
+    }
+
+    // 🔔 Notify all workers with same userCode (NO availability filter)
+    if (jobWasFilled && !job.jobStatus) {
+      const formattedDate = new Date(job.date).toISOString().split("T")[0];
+
+      const matchingWorkers = await Worker.find({
+        userCode: job.userCode,
+      });
+
+      for (const eligibleWorker of matchingWorkers) {
+        // Push Notification
+        if (eligibleWorker.expoPushToken) {
+          const notification = {
+            to: eligibleWorker.expoPushToken,
+            sound: 'default',
+            body: `Job "${job.title}" on ${formattedDate} (${job.shift}) is now available!`,
+            data: {
+              jobId: job._id.toString(),
+              messageContent: `Job "${job.title}" on ${formattedDate} (${job.shift}) is now available.`,
+            },
+          };
+
+          try {
+            await expo.sendPushNotificationsAsync([notification]);
+            console.log(`📢 Push notification sent to ${eligibleWorker.name}`);
+          } catch (err) {
+            console.error(`❌ Error sending push to ${eligibleWorker.name}:`, err);
+          }
+        }
+
+        // Email Notification
+        try {
+          await sendJobAvailableEmail(
+            eligibleWorker.email,
+            eligibleWorker.name,
+            job.title,
+            formattedDate,
+            job.shift
+          );
+          console.log(`📧 Email sent to ${eligibleWorker.email}`);
+        } catch (err) {
+          console.error(`❌ Error sending email to ${eligibleWorker.email}:`, err);
+        }
+      }
     }
 
     res.status(200).json({ message: 'Job removed successfully!', job });
@@ -794,5 +920,23 @@ export const removeAcceptedJob = async (req, res) => {
     res.status(500).json({ message: 'Server error while removing job.' });
   }
 };
+
+export const getAssignedWorkersForJob = async (req, res) => {
+  try {
+    const jobId = req.params.jobId;
+    const job = await Job.findById(jobId);
+
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    const assignedWorkers = await Worker.find({ _id: { $in: job.workers } });
+    res.json(assignedWorkers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error fetching assigned workers' });
+  }
+};
+
 
 
