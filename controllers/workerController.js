@@ -671,25 +671,29 @@ export const loginWorker = async (req, res) => {
       return res.status(401).json({ message: 'Invalid user code, email, or password.' });
     }
 
-    // Update the worker's push token if provided
+    // Update expoPushToken and activities using findByIdAndUpdate
+    const updates = {};
+
     if (expoPushToken) {
-      await Worker.findByIdAndUpdate(worker._id, { expoPushToken });
+      updates.expoPushToken = expoPushToken;
     }
+
+    // Add a new activity for login
+    updates.$push = { activities: { timestamp: new Date(), message: "Worker has logged in" } };
+
+    await Worker.findByIdAndUpdate(worker._id, updates);
 
     // Set session (optional, if still using sessions in web version)
     req.session.worker = { _id: worker._id, userCode: worker.userCode };
-
-    // Add login activity
-    await Worker.findByIdAndUpdate(worker._id, {
-      $push: { activities: { timestamp: new Date(), message: "Worker has logged in" } }
-    });
 
     // Generate JWT token
     const payload = { id: worker._id, userCode: worker.userCode };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     // Send response with token and worker data
-    res.status(200).json({ token, message: 'Login successful.', worker });
+    const updatedWorker = await Worker.findById(worker._id); // fetch latest worker
+    res.status(200).json({ token, message: 'Login successful.', worker: updatedWorker });
+    
   } catch (error) {
     console.error('Error logging in worker:', error);
     res.status(500).json({ message: 'Server error.' });
