@@ -108,7 +108,7 @@ export const companyLogin = async (req, res) => {
 
 // Function to add a new company
 export const addCompany = async (req, res) => {
-  const { name, email, phone, address, country, city, postcode, password } = req.body;
+  const { name, email, phone, address, country, city, postcode, password, expoPushToken } = req.body;
 
   try {
     // Check if the user is logged in
@@ -142,6 +142,7 @@ export const addCompany = async (req, res) => {
       user: userId, // Link the company to the user
       password: hashedPassword, // Store the hashed password
       comp_code: compCode, // Store the generated company code
+      expoPushToken
     });
 
     // Save the company in the database
