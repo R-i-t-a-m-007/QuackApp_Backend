@@ -74,8 +74,8 @@ app.use(
 );
 
 // Middleware
-app.use(express.json({ limit: '20mb' }));
-app.use(express.urlencoded({ limit: '20mb', extended: true }));
+app.use(express.json({ limit: '50mb' })); // Increase to 50 MB
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 
 // Define routes
