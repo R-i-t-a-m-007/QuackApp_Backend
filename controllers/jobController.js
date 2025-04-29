@@ -473,7 +473,14 @@ export const acceptJob = async (req, res) => {
       } catch (error) {
         console.error('Error sending notification:', error);
       }
-      console.log('Calling sendJobAcceptedEmail with:', userCode, workerName, jobTitle, jobDate, jobShift);
+      console.log('Calling sendJobAcceptedEmail with:', {
+        userCode: job.userCode,
+        workerName: worker.name,
+        jobTitle: job.title,
+        jobDate: new Date(job.date).toLocaleDateString('en-GB'),
+        jobShift: job.shift,
+      });
+      
       await sendJobAcceptedEmail(
         job.userCode, // this will be used to find user or fallback to company
         worker.name,
