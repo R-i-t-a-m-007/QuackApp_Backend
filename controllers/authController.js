@@ -7,14 +7,6 @@ import stripeLib from 'stripe';
 import dotenv from 'dotenv';
 import Worker from '../models/Worker.js';
 import Job from '../models/Job.js';
-import cloudinary from 'cloudinary';
-
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 dotenv.config();
 const stripe = stripeLib(process.env.STRIPE_SECRET_KEY);
@@ -317,35 +309,34 @@ export const updateUserPackage = async (req, res) => {
 
 // Function to upload user image
 export const uploadUserImage = async (req, res) => {
+  const { userId } = req.params; // Get userId from request parameters
+
   try {
-    const userId = req.params.userId;
-    const { image } = req.body; // Assume the base64 image is sent in the request body
-    
-    if (!image) {
-      return res.status(400).json({ message: "No image provided" });
+    // Ensure the user is logged in
+    if (!req.session.user || req.session.user.id !== userId) {
+      return res.status(401).json({ message: 'Unauthorized access.' });
     }
 
-    // Upload image to Cloudinary
-    const uploadResponse = await cloudinary.v2.uploader.upload(image, {
-      folder: 'user_images', // Optional folder name in Cloudinary
-      resource_type: 'auto', // Auto-detect file type (image/video)
-    });
-
-    // Find the user and update the image URL
-    const user = await User.findById(userId);
-    
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    // Check if an image was uploaded
+    if (!req.body.image) {
+      return res.status(400).json({ message: 'No image provided.' });
     }
 
-    // Update the user's profile image URL with Cloudinary URL
-    user.image = uploadResponse.secure_url;
-    await user.save();
+    // Update user with the image (base64 string)
+    const updatedUser  = await User.findByIdAndUpdate(
+      userId,
+      { image: req.body.image }, // Store the base64 image
+      { new: true }
+    );
 
-    res.status(200).json({ message: "Image uploaded successfully", imageUrl: uploadResponse.secure_url });
+    if (!updatedUser ) {
+      return res.status(404).json({ message: 'User  not found.' });
+    }
+
+    res.status(200).json({ message: 'Image uploaded successfully.', user: updatedUser  });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error uploading image" });
+    console.error('Error uploading image:', error);
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
