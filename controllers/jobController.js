@@ -84,14 +84,16 @@ const sendJobAcceptedEmail = async (userCode, workerName, jobTitle, jobDate, job
       if (company) {
         recipientEmail = company.email;
         recipientName = company.name || 'Company';
-      } else {
-        console.log('No user or company found for job acceptance notification.');
-        return;
       }
     }
 
+    if (!recipientEmail) {
+      console.log('❌ No user or company found for job acceptance notification.');
+      return;
+    }
+
     const transporter = nodemailer.createTransport({
-      service: 'Gmail',
+      service: 'gmail', // ✅ lowercase
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -102,44 +104,54 @@ const sendJobAcceptedEmail = async (userCode, workerName, jobTitle, jobDate, job
       from: process.env.EMAIL_USER,
       to: recipientEmail,
       subject: 'Job Accepted Notification',
-      text: `Hello ${recipientName},
-
-${workerName} has accepted the job "${jobTitle}" scheduled on ${jobDate} for the ${jobShift} shift.
-
-You can check the app for more details.
-
-Best regards,  
-The QuackApp Team`,
+      html: `
+        <h3>Job Acceptance Notice</h3>
+        <p><strong>${workerName}</strong> has accepted the job: <strong>${jobTitle}</strong>.</p>
+        <p>Date: <strong>${jobDate}</strong></p>
+        <p>Shift: <strong>${jobShift}</strong></p>
+        <p>You can check the app for more details.</p>
+        <br/>
+        <p>Best regards,</p>
+        <p>The QuackApp Team</p>
+      `,
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log('📧 Job accepted email sent to:', recipientEmail);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('📧 Job accepted email sent:', info.response);
   } catch (error) {
     console.error('❌ Error sending job accepted email:', error);
   }
 };
+
+
 const sendJobDeclinedEmail = async (userCode, workerName, jobTitle, jobDate, jobShift) => {
   try {
     let recipientEmail = null;
     let recipientName = null;
 
+    // Try finding User first
     const user = await User.findOne({ userCode });
+
     if (user) {
       recipientEmail = user.email;
       recipientName = user.username || 'User';
     } else {
+      // If no user, try finding Company
       const company = await CompanyList.findOne({ comp_code: userCode });
+
       if (company) {
         recipientEmail = company.email;
         recipientName = company.name || 'Company';
-      } else {
-        console.log('❌ No user or company found to notify for job decline');
-        return;
       }
     }
 
+    if (!recipientEmail) {
+      console.log('❌ No user or company found to notify for job decline.');
+      return;
+    }
+
     const transporter = nodemailer.createTransport({
-      service: 'Gmail',
+      service: 'gmail', // ✅ Lowercase "gmail"
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -150,22 +162,26 @@ const sendJobDeclinedEmail = async (userCode, workerName, jobTitle, jobDate, job
       from: process.env.EMAIL_USER,
       to: recipientEmail,
       subject: 'Job Declined Notification',
-      text: `Hello ${recipientName},
-
-${workerName} has declined the job "${jobTitle}" scheduled on ${jobDate} for the ${jobShift} shift.
-
-You may want to invite more workers if needed.
-
-Best regards,  
-The QuackApp Team`,
+      html: `
+        <h3>Job Decline Notice</h3>
+        <p><strong>${workerName}</strong> has declined the job: <strong>${jobTitle}</strong>.</p>
+        <p>Date: <strong>${jobDate}</strong></p>
+        <p>Shift: <strong>${jobShift}</strong></p>
+        <p>You may want to invite more workers if needed.</p>
+        <br/>
+        <p>Best regards,</p>
+        <p>The QuackApp Team</p>
+      `,
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log('📧 Job declined email sent to:', recipientEmail);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('📧 Job declined email sent:', info.response);
   } catch (error) {
     console.error('❌ Error sending job declined email:', error);
   }
 };
+
+
 
 const sendJobRemovedEmail = async (userCode, workerName, jobTitle, jobDate, shift) => {
   try {
@@ -457,12 +473,12 @@ export const acceptJob = async (req, res) => {
       } catch (error) {
         console.error('Error sending notification:', error);
       }
-
+      console.log('Calling sendJobAcceptedEmail with:', userCode, workerName, jobTitle, jobDate, jobShift);
       await sendJobAcceptedEmail(
         job.userCode, // this will be used to find user or fallback to company
         worker.name,
         job.title,
-        new Date(job.date).toLocaleDateString(),
+        new Date(job.date).toLocaleDateString('en-GB'),
         job.shift
       );
 
@@ -552,7 +568,7 @@ export const declineJob = async (req, res) => {
         job.userCode,
         worker.name,
         job.title,
-        new Date(job.date).toLocaleDateString(),
+        new Date(job.date).toLocaleDateString('en-GB'),
         job.shift
       );
 
@@ -864,7 +880,7 @@ export const removeAcceptedJob = async (req, res) => {
         job.userCode,
         worker.name,
         job.title,
-        new Date(job.date).toLocaleDateString(),
+        new Date(job.date).toLocaleDateString('en-GB'),
         job.shift
       );
     }

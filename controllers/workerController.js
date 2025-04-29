@@ -176,7 +176,7 @@ const sendAvailabilityMarkedEmail = async (worker, date, shift) => {
 
 Worker ${worker.name} (${worker.email}) has marked themselves available for the following shift:
 
-📅 Date: ${new Date(date).toLocaleDateString()}
+📅 Date: ${new Date(date).toLocaleDateString('en-GB')}
 🕒 Shift: ${shift}
 
 They may now accept or decline jobs that match this availability.
@@ -724,7 +724,7 @@ export const updateWorkerAvailability = async (req, res) => {
     // Log activity
     updatedWorker.activities.push({
       timestamp: new Date(),
-      message: `Worker marked availability for ${new Date(date).toLocaleDateString()} (${shift})`,
+      message: `Worker marked availability for ${new Date(date).toLocaleDateString('en-GB')} (${shift})`,
     });
 
     await updatedWorker.save();
@@ -738,10 +738,10 @@ export const updateWorkerAvailability = async (req, res) => {
       const notification = {
         to: user.expoPushToken,
         sound: 'default',
-        body: `${updatedWorker.name} has marked themselves available on ${new Date(date).toLocaleDateString()} for the ${shift} shift.`,
+        body: `${updatedWorker.name} has marked themselves available on ${new Date(date).toLocaleDateString('en-GB')} for the ${shift} shift.`,
         data: { 
           username: updatedWorker.name, 
-          messageContent: `${updatedWorker.name} has marked themselves available on ${new Date(date).toLocaleDateString()} for the ${shift} shift.` 
+          messageContent: `${updatedWorker.name} has marked themselves available on ${new Date(date).toLocaleDateString('en-GB')} for the ${shift} shift.` 
         },
       };
 
@@ -1106,9 +1106,7 @@ export const sendMessageToWorkers = async (req, res) => {
   try {
     const { message } = req.body;
 
-    // Check if sender is a user or company
     const sender = req.session.user || req.session.company;
-
     if (!sender) {
       return res.status(401).json({ message: 'Unauthorized. Please log in.' });
     }
@@ -1117,48 +1115,42 @@ export const sendMessageToWorkers = async (req, res) => {
       return res.status(400).json({ message: 'Message cannot be empty' });
     }
 
-    const userCode = sender.userCode || sender.comp_code; // Get userCode from session
-    const username = sender.username || sender.name; // Assuming you have a username or companyName field
+    const userCode = sender.userCode || sender.comp_code;
+    const username = sender.username || sender.name;
 
-    // Find all workers with the same userCode
     const workers = await Worker.find({ userCode });
 
     if (workers.length === 0) {
       return res.status(404).json({ message: 'No workers found with this code' });
     }
 
-    // Add the message to each worker's messages array
-    await Promise.all(
-      workers.map(worker =>
-        Worker.findByIdAndUpdate(worker._id, {
-          $push: { messages: { message, senderId: sender.id, timestamp: new Date() } },
-        })
-      )
-    );
-
-    // Prepare notifications
-    const notifiedDevices = new Set(); // Track devices that have already been notified
     const notifications = [];
+    const notifiedTokens = new Set(); // To avoid sending duplicate notifications
 
-    workers.forEach(worker => {
+    await Promise.all(workers.map(async (worker) => {
+      // Update each worker's messages
+      await Worker.findByIdAndUpdate(worker._id, {
+        $push: { messages: { message, senderId: sender.id, timestamp: new Date() } },
+      });
+
+      // Prepare notification if token exists and not already notified
       const token = worker.expoPushToken;
-      if (token && !notifiedDevices.has(token)) {
-        notifiedDevices.add(token);
+      if (token && !notifiedTokens.has(token)) {
+        notifiedTokens.add(token);
         notifications.push({
           to: token,
           sound: 'default',
-          body: `New message from ${username}: ${message}`, // Updated message format
-          data: { username: username, messageContent: message }, // Include username and message content
+          body: `New message from ${username}: ${message}`,
+          data: { username: username, messageContent: message },
         });
       }
-    });
+    }));
 
     // Send notifications
-    let chunks = expo.chunkPushNotifications(notifications);                              
+    const chunks = expo.chunkPushNotifications(notifications);
     for (let chunk of chunks) {
       try {
-        let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-        console.log(ticketChunk);
+        await expo.sendPushNotificationsAsync(chunk);
       } catch (error) {
         console.error('Error sending notifications:', error);
       }
@@ -1170,6 +1162,7 @@ export const sendMessageToWorkers = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 export const getWorkerMessages = async (req, res) => {
   try {
