@@ -7,6 +7,14 @@ import stripeLib from 'stripe';
 import dotenv from 'dotenv';
 import Worker from '../models/Worker.js';
 import Job from '../models/Job.js';
+import cloudinary from 'cloudinary';
+
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 dotenv.config();
 const stripe = stripeLib(process.env.STRIPE_SECRET_KEY);
