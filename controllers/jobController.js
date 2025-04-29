@@ -411,24 +411,24 @@ export const acceptJob = async (req, res) => {
 
     console.log(`✅ Job found: ${jobId}, Date: ${job.date}, Shift: ${job.shift}, Job Status: ${job.jobStatus}`);
 
-    // ❌ If jobStatus is true, prevent acceptance
+    // Prevent accepting already filled job
     if (job.jobStatus) {
       console.log(`⚠️ Job ${jobId} is already filled.`);
       return res.status(400).json({ message: 'This job has already been filled and is no longer accepting workers.' });
     }
 
-    // Ensure date comparison works correctly
+    // Check availability
     const isAvailable = worker.availability.some(avail => 
       new Date(avail.date).toISOString().split('T')[0] === new Date(job.date).toISOString().split('T')[0] &&
       avail.shift.toString() === job.shift.toString()
     );
 
     if (!isAvailable) {
-      console.log(`⚠️ Worker ${workerId} is not available for this job`);                               
-      return res.status(400).json({ message: 'You can only accept jobs that match your availability. Mark yourself available to accept.' });
+      console.log(`⚠️ Worker ${workerId} is not available for this job`);
+      return res.status(400).json({ message: 'You can only accept jobs that match your availability.' });
     }
 
-    // Remove jobId from worker's invitedJobs
+    // Remove jobId from invitedJobs
     worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== jobId);
     await worker.save();
     console.log(`🔄 Updated Worker: Removed Job ID from invitedJobs`);
@@ -439,66 +439,62 @@ export const acceptJob = async (req, res) => {
       return res.status(400).json({ message: 'You have already accepted this job.' });
     }
 
-    // Add workerId to job's workers array
+    // Add workerId to job
     job.workers.push(workerId);
-    console.log(`🔄 Worker ${workerId} added to job ${jobId}`);
 
-    // Update jobStatus if workersRequired is met
     if (job.workers.length >= job.workersRequired) {
       job.jobStatus = true;
-      console.log(`✅ Job ${jobId} is now fully staffed and marked as completed`);
+      console.log(`✅ Job ${jobId} is now fully staffed`);
     }
 
     await job.save();
     console.log(`✅ Job ${jobId} updated successfully`);
 
-    // Send notification to the user about the worker accepting the job
-    const user = await User.findOne({ userCode: job.userCode }); // Use userCode to find the user
+    // 🔔 Attempt to send push notification (optional)
+    const user = await User.findOne({ userCode: job.userCode });
     if (user && user.expoPushToken) {
       const notification = {
         to: user.expoPushToken,
         sound: 'default',
         body: `${worker.name} has accepted the job: ${job.title}.`,
-        data: { 
-          workerName: worker.name, 
-          jobId: job._id, 
-          messageContent: `${worker.name} has accepted the job: ${job.title}.` 
+        data: {
+          workerName: worker.name,
+          jobId: job._id,
+          messageContent: `${worker.name} has accepted the job: ${job.title}.`
         },
       };
 
-      // Send the notification
       try {
-        let ticket = await expo.sendPushNotificationsAsync([notification]);
-        console.log('Notification sent:', ticket);
-      } catch (error) {
-        console.error('Error sending notification:', error);
+        const ticket = await expo.sendPushNotificationsAsync([notification]);
+        console.log('📲 Push notification sent:', ticket);
+      } catch (pushError) {
+        console.error('❌ Error sending push notification:', pushError);
       }
-      console.log('Calling sendJobAcceptedEmail with:', {
-        userCode: job.userCode,
-        workerName: worker.name,
-        jobTitle: job.title,
-        jobDate: new Date(job.date).toLocaleDateString('en-GB'),
-        jobShift: job.shift,
-      });
-      
+    } else {
+      console.log('ℹ️ No Expo Push Token found. Skipping push notification.');
+    }
+
+    // 📧 Always send job accepted email
+    try {
       await sendJobAcceptedEmail(
-        job.userCode, // this will be used to find user or fallback to company
+        job.userCode,
         worker.name,
         job.title,
         new Date(job.date).toLocaleDateString('en-GB'),
         job.shift
       );
-
-    } else {
-      console.log('No Expo Push Token available for user or user not found.');
+    } catch (emailError) {
+      console.error('❌ Error sending job accepted email:', emailError);
     }
 
     res.status(200).json({ message: 'Job accepted successfully!', job });
+
   } catch (error) {
-    console.error('❌ Error accepting job:', error);
+    console.error('❌ Error in acceptJob:', error);
     res.status(500).json({ message: 'Server error while accepting job.' });
   }
 };
+
 
 // Decline a job invitation
 export const declineJob = async (req, res) => {
