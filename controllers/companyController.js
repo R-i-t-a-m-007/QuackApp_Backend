@@ -110,6 +110,7 @@ export const companyLogin = async (req, res) => {
 export const addCompany = async (req, res) => {
   const { name, email, phone, address, country, city, postcode, password, expoPushToken } = req.body;
   console.log(req.body);
+  console.log('Expo Push Token in Backend:', expoPushToken);
   
   try {
     // Check if the user is logged in
