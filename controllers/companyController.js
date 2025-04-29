@@ -109,7 +109,8 @@ export const companyLogin = async (req, res) => {
 // Function to add a new company
 export const addCompany = async (req, res) => {
   const { name, email, phone, address, country, city, postcode, password, expoPushToken } = req.body;
-
+  console.log(expoPushToken);
+  
   try {
     // Check if the user is logged in
     const userId = req.session.user ? req.session.user.id : null;
