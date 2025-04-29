@@ -317,34 +317,35 @@ export const updateUserPackage = async (req, res) => {
 
 // Function to upload user image
 export const uploadUserImage = async (req, res) => {
-  const { userId } = req.params; // Get userId from request parameters
-
   try {
-    // Ensure the user is logged in
-    if (!req.session.user || req.session.user.id !== userId) {
-      return res.status(401).json({ message: 'Unauthorized access.' });
+    const userId = req.params.userId;
+    const { image } = req.body; // Assume the base64 image is sent in the request body
+    
+    if (!image) {
+      return res.status(400).json({ message: "No image provided" });
     }
 
-    // Check if an image was uploaded
-    if (!req.body.image) {
-      return res.status(400).json({ message: 'No image provided.' });
+    // Upload image to Cloudinary
+    const uploadResponse = await cloudinary.v2.uploader.upload(image, {
+      folder: 'user_images', // Optional folder name in Cloudinary
+      resource_type: 'auto', // Auto-detect file type (image/video)
+    });
+
+    // Find the user and update the image URL
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // Update user with the image (base64 string)
-    const updatedUser  = await User.findByIdAndUpdate(
-      userId,
-      { image: req.body.image }, // Store the base64 image
-      { new: true }
-    );
+    // Update the user's profile image URL with Cloudinary URL
+    user.image = uploadResponse.secure_url;
+    await user.save();
 
-    if (!updatedUser ) {
-      return res.status(404).json({ message: 'User  not found.' });
-    }
-
-    res.status(200).json({ message: 'Image uploaded successfully.', user: updatedUser  });
+    res.status(200).json({ message: "Image uploaded successfully", imageUrl: uploadResponse.secure_url });
   } catch (error) {
-    console.error('Error uploading image:', error);
-    res.status(500).json({ message: 'Server error.' });
+    console.error(error);
+    res.status(500).json({ message: "Error uploading image" });
   }
 };
 
