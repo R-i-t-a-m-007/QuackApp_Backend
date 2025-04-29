@@ -345,7 +345,7 @@ export const getJobsForWorker = async (req, res) => {
 
     const jobs = await Job.find({
       userCode: worker.userCode || req.session.company.comp_code, // Match company userCode
-      // invitedWorkers: workerId,
+      invitedWorkers: workerId,
       workers: { $not: { $elemMatch: { $eq: workerId } } }, // Exclude jobs already accepted
     });
 
@@ -509,7 +509,6 @@ export const declineJob = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized. Worker ID is required.' });
     }
 
-    // Find the worker and remove jobId from invitedJobs
     const worker = await Worker.findById(workerId);
     if (!worker) {
       console.log(`⛔ Worker not found - ID: ${workerId}`);
@@ -518,12 +517,11 @@ export const declineJob = async (req, res) => {
 
     console.log(`✅ Worker found: ${workerId}, Invited Jobs: ${worker.invitedJobs}`);
 
-    // Remove jobId from worker's invitedJobs
+    // Remove jobId from invitedJobs
     worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== jobId);
     await worker.save();
     console.log(`🔄 Updated Worker: Removed Job ID from invitedJobs`);
 
-    // Find the job
     const job = await Job.findById(jobId);
     if (!job) {
       console.log(`⛔ Job not found - ID: ${jobId}`);
@@ -536,37 +534,41 @@ export const declineJob = async (req, res) => {
     job.invitedWorkers = job.invitedWorkers.filter(id => id.toString() !== workerId.toString());
     console.log(`🔄 Worker ${workerId} removed from invitedWorkers`);
 
-    // If jobStatus was true, check if it should be reset
+    // Reset jobStatus if it was full but now under capacity
     if (job.jobStatus && job.workers.length < job.workersRequired) {
       job.jobStatus = false;
-      console.log(`⚠️ Job ${jobId} does not meet required workers anymore, setting jobStatus to false`);
+      console.log(`⚠️ Job ${jobId} no longer fully staffed. Marked as open (jobStatus = false)`);
     }
 
     await job.save();
     console.log(`✅ Job ${jobId} updated successfully`);
 
-    // Send notification to the user about the worker declining the job
-    const user = await User.findOne({ userCode: job.userCode }); // Use userCode to find the user
+    // Send notification (optional)
+    const user = await User.findOne({ userCode: job.userCode });
     if (user && user.expoPushToken) {
       const notification = {
         to: user.expoPushToken,
         sound: 'default',
         body: `${worker.name} has declined the job: ${job.title}.`,
-        data: { 
-          workerName: worker.name, 
-          jobId: job._id, 
-          messageContent: `${worker.name} has declined the job: ${job.title}.` 
+        data: {
+          workerName: worker.name,
+          jobId: job._id,
+          messageContent: `${worker.name} has declined the job: ${job.title}.`
         },
       };
 
-      // Send the notification
       try {
-        let ticket = await expo.sendPushNotificationsAsync([notification]);
-        console.log('Notification sent:', ticket);
-      } catch (error) {
-        console.error('Error sending notification:', error);
+        const ticket = await expo.sendPushNotificationsAsync([notification]);
+        console.log('📲 Push notification sent:', ticket);
+      } catch (pushError) {
+        console.error('❌ Error sending push notification:', pushError);
       }
+    } else {
+      console.log('ℹ️ No Expo Push Token found. Skipping push notification.');
+    }
 
+    // Always send decline email
+    try {
       await sendJobDeclinedEmail(
         job.userCode,
         worker.name,
@@ -574,17 +576,18 @@ export const declineJob = async (req, res) => {
         new Date(job.date).toLocaleDateString('en-GB'),
         job.shift
       );
-
-    } else {
-      console.log('No Expo Push Token available for user or user not found.');
+    } catch (emailError) {
+      console.error('❌ Error sending job declined email:', emailError);
     }
 
     res.status(200).json({ message: 'Job invitation declined successfully!', job });
+
   } catch (error) {
     console.error('❌ Error declining job invitation:', error);
     res.status(500).json({ message: 'Server error while declining job invitation.' });
   }
 };
+
 
 
 // Update job status based on the number of workers
