@@ -7,6 +7,17 @@ import stripeLib from 'stripe';
 import dotenv from 'dotenv';
 import Worker from '../models/Worker.js';
 import Job from '../models/Job.js';
+import AWS from 'aws-sdk';
+import { v4 as uuidv4 } from 'uuid';
+
+const region = process.env.AWS_REGION || 'us-east-1';
+
+AWS.config.update({
+  region,
+  // No need to manually configure credentials if using IAM Role
+});
+
+const s3 = new AWS.S3();
 
 dotenv.config();
 const stripe = stripeLib(process.env.STRIPE_SECRET_KEY);
@@ -547,5 +558,63 @@ export const getCustomerId = async (req, res) => {
   } catch (error) {
     console.error('Error retrieving customer ID:', error);
     res.status(500).json({ error: 'Failed to retrieve customer ID.' });
+  }
+};
+
+export const generatePresignedUrl = async (req, res) => {
+  try {
+    const { fileType } = req.body;
+
+    if (!fileType) {
+      return res.status(400).json({ error: 'File type is required' });
+    }
+
+    const fileExtension = fileType.split('/')[1];
+    const fileName = `profile-images/${uuidv4()}.${fileExtension}`;
+
+    const params = {
+      Bucket: 'quackapp-images', // your bucket name
+      Key: fileName,
+      Expires: 60, // expires in 60 seconds
+      ContentType: fileType,
+      ACL: 'public-read',
+    };
+
+    const uploadURL = await s3.getSignedUrlPromise('putObject', params);
+
+    return res.status(200).json({
+      uploadURL,
+      key: fileName,
+      url: `https://${params.Bucket}.s3.amazonaws.com/${fileName}`,
+    });
+  } catch (error) {
+    console.error('Error generating pre-signed URL:', error);
+    return res.status(500).json({ error: 'Failed to generate upload URL' });
+  }
+};
+
+export const updateUserImage = async (req, res) => {
+  try {
+    const { userId } = req.params; // or from req.user if using auth
+    const { imageUrl } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({ error: 'Image URL is required' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { image: imageUrl },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Image updated successfully', user });
+  } catch (error) {
+    console.error('Failed to update user image:', error);
+    res.status(500).json({ error: 'Failed to update user image' });
   }
 };
