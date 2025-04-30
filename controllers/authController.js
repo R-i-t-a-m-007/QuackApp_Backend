@@ -7,17 +7,11 @@ import stripeLib from 'stripe';
 import dotenv from 'dotenv';
 import Worker from '../models/Worker.js';
 import Job from '../models/Job.js';
-import AWS from 'aws-sdk';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'; // v3 SDK imports
 import { v4 as uuidv4 } from 'uuid';
 
 const region = process.env.AWS_REGION || 'us-east-1';
-
-AWS.config.update({
-  region,
-  // No need to manually configure credentials if using IAM Role
-});
-
-const s3 = new AWS.S3();
+const s3 = new S3Client({ region }); // Create the S3 client
 
 dotenv.config();
 const stripe = stripeLib(process.env.STRIPE_SECRET_KEY);
@@ -572,6 +566,7 @@ export const generatePresignedUrl = async (req, res) => {
     const fileExtension = fileType.split('/')[1];
     const fileName = `profile-images/${uuidv4()}.${fileExtension}`;
 
+    // Use S3 pre-signed URL generation with v3 SDK
     const params = {
       Bucket: 'quackapp-images', // your bucket name
       Key: fileName,
@@ -580,7 +575,9 @@ export const generatePresignedUrl = async (req, res) => {
       ACL: 'public-read',
     };
 
-    const uploadURL = await s3.getSignedUrlPromise('putObject', params);
+    // Generate the pre-signed URL
+    const command = new PutObjectCommand(params); // Create a PutObjectCommand
+    const uploadURL = await s3.getSignedUrl(command, { expiresIn: 60 }); // Use getSignedUrl method
 
     return res.status(200).json({
       uploadURL,
