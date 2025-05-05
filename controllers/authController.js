@@ -409,13 +409,21 @@ export const deleteUser = async (req, res) => {
 
     // Find all companies created by this user
     const companiesToDelete = await CompanyList.find({ user: userId });
+    console.log(companiesToDelete);
+    
     const compCodes = companiesToDelete.map(company => company.comp_code);
+    console.log(compCodes);
+    
 
     // Delete companies
     const deletedCompanies = await CompanyList.deleteMany({ user: userId });
+    console.log(deletedCompanies);
+    
 
     // Delete workers whose userCode matches deleted company codes
     const deletedWorkersFromCompanies = await Worker.deleteMany({ userCode: { $in: compCodes } });
+    console.log(deletedWorkersFromCompanies);
+    
 
     res.status(200).json({
       message: 'User, associated workers, jobs, and companies deleted successfully.',
