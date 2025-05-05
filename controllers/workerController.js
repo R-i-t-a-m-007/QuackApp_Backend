@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 const expo = new Expo();
 
 // Function to send email to the worker with credentials
-const sendWorkerEmail = async (email, name, role, userCode, password) => {
+const sendWorkerEmail = async (email, name, userCode, password) => {
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
@@ -1283,7 +1283,7 @@ export const cancelShiftForWorker = async (req, res) => {
     await worker.save();
 
     // Send cancellation email to admin/user
-    await sendShiftCancellationEmail(worker, formattedShiftDate, new Date(shift).toLocaleDateString('en-GB'), affectedJobs);
+    await sendShiftCancellationEmail(worker, new Date(formattedShiftDate).toLocaleDateString('en-GB'), shift, affectedJobs);
 
     // Notify user who owns the worker
     const user = await User.findOne({ userCode: worker.userCode });
