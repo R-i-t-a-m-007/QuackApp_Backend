@@ -401,43 +401,26 @@ export const deleteUser = async (req, res) => {
     // Delete the user
     await User.findByIdAndDelete(userId);
 
-    // Delete all workers associated with the user
-    const deletedWorkersFromUser = await Worker.deleteMany({ userCode });
+    // Delete all workers associated with this userCode
+    const deletedWorkers = await Worker.deleteMany({ userCode });
 
-    // Delete all jobs associated with the user
+    // Delete all jobs associated with this userCode
     const deletedJobs = await Job.deleteMany({ userCode });
 
-    // Find all companies created by this user
-    const companiesToDelete = await CompanyList.find({ user: userId });
-    console.log(companiesToDelete);
-    
-    const compCodes = companiesToDelete.map(company => company.comp_code);
-    console.log(compCodes);
-    
-
-    // Delete companies
+    // Delete all companies where the user field matches userId
     const deletedCompanies = await CompanyList.deleteMany({ user: userId });
-    console.log(deletedCompanies);
-    
-
-    // Delete workers whose userCode matches deleted company codes
-    const deletedWorkersFromCompanies = await Worker.deleteMany({ userCode: { $in: compCodes } });
-    console.log(deletedWorkersFromCompanies);
-    
 
     res.status(200).json({
-      message: 'User, associated workers, jobs, and companies deleted successfully.',
-      deletedWorkersFromUser: deletedWorkersFromUser.deletedCount,
-      deletedJobs: deletedJobs.deletedCount,
-      deletedCompanies: deletedCompanies.deletedCount,
-      deletedWorkersFromCompanies: deletedWorkersFromCompanies.deletedCount
+      message: `User, associated workers, jobs, and companies deleted successfully.`,
+      deletedWorkersCount: deletedWorkers.deletedCount,
+      deletedJobsCount: deletedJobs.deletedCount,
+      deletedCompaniesCount: deletedCompanies.deletedCount,
     });
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).json({ message: 'Failed to delete user and associated data.' });
   }
 };
-
 
 
 
