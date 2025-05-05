@@ -1130,7 +1130,7 @@ export const sendMessageToWorkers = async (req, res) => {
     await Promise.all(workers.map(async (worker) => {
       // Update each worker's messages
       await Worker.findByIdAndUpdate(worker._id, {
-        $push: { messages: { message, senderId: sender.id, timestamp: new Date() } },
+        $push: { messages: { message, senderId: sender._id, timestamp: new Date() } },
       });
 
       // Prepare notification if token exists and not already notified
