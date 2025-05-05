@@ -402,20 +402,28 @@ export const deleteUser = async (req, res) => {
     // Delete the user
     await User.findByIdAndDelete(userId);
 
-    // Delete all workers associated with this userCode
-    const deletedWorkers = await Worker.deleteMany({ userCode });
+    // Delete all workers associated with the user
+    const deletedWorkersFromUser = await Worker.deleteMany({ userCode });
 
-    // Delete all jobs associated with this userCode
+    // Delete all jobs associated with the user
     const deletedJobs = await Job.deleteMany({ userCode });
 
-    // Delete all companies where the user field matches userId
+    // Find all companies created by this user
+    const companiesToDelete = await CompanyList.find({ user: userId });
+    const compCodes = companiesToDelete.map(company => company.comp_code);
+
+    // Delete companies
     const deletedCompanies = await CompanyList.deleteMany({ user: userId });
 
+    // Delete workers whose userCode matches deleted company codes
+    const deletedWorkersFromCompanies = await Worker.deleteMany({ userCode: { $in: compCodes } });
+
     res.status(200).json({
-      message: `User, associated workers, jobs, and companies deleted successfully.`,
-      deletedWorkersCount: deletedWorkers.deletedCount,
-      deletedJobsCount: deletedJobs.deletedCount,
-      deletedCompaniesCount: deletedCompanies.deletedCount,
+      message: 'User, associated workers, jobs, and companies deleted successfully.',
+      deletedWorkersFromUser: deletedWorkersFromUser.deletedCount,
+      deletedJobs: deletedJobs.deletedCount,
+      deletedCompanies: deletedCompanies.deletedCount,
+      deletedWorkersFromCompanies: deletedWorkersFromCompanies.deletedCount
     });
   } catch (error) {
     console.error('Error deleting user:', error);
