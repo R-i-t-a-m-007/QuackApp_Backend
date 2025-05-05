@@ -1134,6 +1134,11 @@ export const sendMessageToWorkers = async (req, res) => {
       await Worker.findByIdAndUpdate(worker._id, {
         $push: { messages: { message, senderId: sender._id, timestamp: new Date() } },
       });
+      console.log("Message to push:", {
+        message: message,
+        senderId: sender._id,
+        timestamp: new Date()
+      });
 
       // Prepare notification if token exists and not already notified
       const token = worker.expoPushToken;
