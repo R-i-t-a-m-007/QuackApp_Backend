@@ -1283,7 +1283,7 @@ export const cancelShiftForWorker = async (req, res) => {
     await worker.save();
 
     // Send cancellation email to admin/user
-    await sendShiftCancellationEmail(worker, formattedShiftDate, shift, affectedJobs);
+    await sendShiftCancellationEmail(worker, formattedShiftDate, new Date(shift).toLocaleDateString('en-GB'), affectedJobs);
 
     // Notify user who owns the worker
     const user = await User.findOne({ userCode: worker.userCode });
