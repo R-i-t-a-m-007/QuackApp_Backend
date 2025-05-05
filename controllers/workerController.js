@@ -1110,6 +1110,8 @@ export const sendMessageToWorkers = async (req, res) => {
     if (!sender) {
       return res.status(401).json({ message: 'Unauthorized. Please log in.' });
     }
+    console.log('Sender:', sender); // Should show the logged-in user or company with _id
+
 
     if (!message) {
       return res.status(400).json({ message: 'Message cannot be empty' });
