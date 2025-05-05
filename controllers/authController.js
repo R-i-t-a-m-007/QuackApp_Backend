@@ -407,8 +407,8 @@ export const deleteUser = async (req, res) => {
     // Delete all jobs associated with this userCode
     const deletedJobs = await Job.deleteMany({ userCode });
 
-    // Delete all companies associated with this userCode
-    const deletedCompanies = await CompanyList.deleteMany({ comp_code: userCode });
+    // Delete all companies where the user field matches userId
+    const deletedCompanies = await CompanyList.deleteMany({ user: userId });
 
     res.status(200).json({
       message: `User, associated workers, jobs, and companies deleted successfully.`,

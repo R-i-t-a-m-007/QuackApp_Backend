@@ -108,12 +108,11 @@ export const companyLogin = async (req, res) => {
 
 // Function to add a new company
 export const addCompany = async (req, res) => {
-  const { name, email, phone, address, country, city, postcode, password } = req.body;
+  const { name, email, phone, address, country, city, postcode, password} = req.body;
+  console.log(req.body);
   const expoPushToken = req.body.expoPushToken;
-
-  console.log('Received body:', req.body);
   console.log('Expo Push Token in Backend:', expoPushToken);
-
+  
   try {
     // Check if the user is logged in
     const userId = req.session.user ? req.session.user.id : null;
@@ -122,24 +121,19 @@ export const addCompany = async (req, res) => {
       return res.status(401).json({ message: 'No user logged in.' });
     }
 
-    // Fetch the user to get userCode
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
-    }
-
-    const compCode = user.userCode;
-
     // Check if the company already exists by email
     const existingCompanyByEmail = await CompanyList.findOne({ email });
     if (existingCompanyByEmail) {
       return res.status(400).json({ message: 'Email already exists.' });
     }
 
+    // Generate a unique company code
+    const compCode = generateCompCode();
+
     // Hash the password before storing
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new company with user's userCode as comp_code
+    // Create a new company
     const newCompany = new CompanyList({
       name,
       email,
@@ -148,24 +142,24 @@ export const addCompany = async (req, res) => {
       country,
       city,
       postcode,
-      user: userId,
-      password: hashedPassword,
-      comp_code: compCode,
-      expoPushToken,
+      user: userId, // Link the company to the user
+      password: hashedPassword, // Store the hashed password
+      comp_code: compCode, // Store the generated company code
+      expoPushToken
     });
 
+    // Save the company in the database
     await newCompany.save();
 
-    // Send email with registration info
+    // Send email with registration info (plain text password for user reference)
     await sendEmail(email, compCode, password);
 
     res.status(201).json({ message: 'Company added successfully!', company: newCompany });
   } catch (error) {
-    console.error('Error in addCompany:', error);
+    console.error(error);
     res.status(500).json({ message: 'Server error.' });
   }
 };
-
 
 // Fetch the list of companies associated with the logged-in user
 export const getCompanies = async (req, res) => {
