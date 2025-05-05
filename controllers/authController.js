@@ -7,6 +7,7 @@ import stripeLib from 'stripe';
 import dotenv from 'dotenv';
 import Worker from '../models/Worker.js';
 import Job from '../models/Job.js';
+import CompanyList from '../models/CompanyList.js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'; // v3 SDK imports
 import { v4 as uuidv4 } from 'uuid';
 
