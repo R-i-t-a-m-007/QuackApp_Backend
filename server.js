@@ -35,8 +35,10 @@ app.set('trust proxy', 1);
 
 const allowedOrigins = [
   'https://quackapp-admin.netlify.app',
-  undefined, // for mobile apps like Expo (they often send undefined origin)
-  "https://thequackapp.com"
+  'https://thequackapp.com',
+  undefined, // for some cases like Postman or server-side requests
+  'exp://',  // allow Expo Go on LAN (you might need to allow a wildcard)
+  'app://',  // allow standalone Expo builds
 ];
 
 // Configure session middleware
@@ -62,14 +64,19 @@ app.use("/healthcheck", (req,res)=>{
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (allowedOrigins.includes(origin) || !origin) {
+      if (
+        !origin || 
+        allowedOrigins.includes(origin) || 
+        origin.startsWith('exp://') || 
+        origin.startsWith('app://')
+      ) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
       }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true, // Allow cookies
+    credentials: true,
   })
 );
 
