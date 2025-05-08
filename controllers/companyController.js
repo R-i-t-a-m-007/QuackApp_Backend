@@ -76,28 +76,32 @@ The QuackApp Team`,
 // Function to handle company login
 // Company Login Controller
 export const companyLogin = async (req, res) => {
-  const { compcode, password } = req.body;
+  const { compcode, password, expoPushToken } = req.body;
 
   try {
-    // Check if the company exists with the given compcode
     const company = await CompanyList.findOne({ comp_code: compcode });
     if (!company) {
       return res.status(404).json({ message: 'Company not found.' });
     }
 
-    // Compare the entered password with the stored hashed password
     const isPasswordValid = await bcrypt.compare(password, company.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid password.' });
     }
 
-    // Create a session for the logged-in company
+    // ✅ Save expoPushToken if provided
+    if (expoPushToken) {
+      company.expoPushToken = expoPushToken;
+      await company.save();
+    }
+
+    // ✅ Store session
     req.session.company = {
       _id: company._id,
       name: company.name,
       email: company.email,
-      userCode: company.comp_code, // Store the company code in the session
-    }; 
+      userCode: company.comp_code,
+    };
 
     res.status(200).json({ message: 'Login successful', company });
   } catch (error) {
@@ -105,6 +109,7 @@ export const companyLogin = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
 
 // Function to add a new company
 export const addCompany = async (req, res) => {

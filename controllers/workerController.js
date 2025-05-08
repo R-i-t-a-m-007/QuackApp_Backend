@@ -729,36 +729,50 @@ export const updateWorkerAvailability = async (req, res) => {
 
     await updatedWorker.save();
 
-    // ✉️ Send email notification to user
-    await sendAvailabilityMarkedEmail(updatedWorker, date, shift);
+    // ✉️ Send email notification
+    try {
+      await sendAvailabilityMarkedEmail(updatedWorker, date, shift);
+    } catch (emailError) {
+      console.error('❌ Error sending availability email:', emailError);
+    }
 
-    // Find the user by userCode
-    const user = await User.findOne({ userCode: updatedWorker.userCode }); // Use findOne to get user by userCode
-    if (user && user.expoPushToken) {
+    // 🔔 Send push notification to admin (user or company)
+    let expoPushToken = null;
+
+    const user = await User.findOne({ userCode: updatedWorker.userCode });
+    if (user?.expoPushToken) {
+      expoPushToken = user.expoPushToken;
+    } else {
+      const company = await CompanyList.findOne({ comp_code: updatedWorker.userCode });
+      if (company?.expoPushToken) {
+        expoPushToken = company.expoPushToken;
+      }
+    }
+
+    if (expoPushToken) {
       const notification = {
-        to: user.expoPushToken,
+        to: expoPushToken,
         sound: 'default',
-        body: `${updatedWorker.name} has marked themselves available on ${new Date(date).toLocaleDateString('en-GB')} for the ${shift} shift.`,
-        data: { 
-          username: updatedWorker.name, 
-          messageContent: `${updatedWorker.name} has marked themselves available on ${new Date(date).toLocaleDateString('en-GB')} for the ${shift} shift.` 
+        body: `${updatedWorker.name} is available on ${new Date(date).toLocaleDateString('en-GB')} for the ${shift} shift.`,
+        data: {
+          username: updatedWorker.name,
+          messageContent: `${updatedWorker.name} has marked themselves available on ${new Date(date).toLocaleDateString('en-GB')} for the ${shift} shift.`
         },
       };
 
-      // Send the notification
       try {
         let ticket = await expo.sendPushNotificationsAsync([notification]);
-        console.log('Notification sent:', ticket);
-      } catch (error) {
-        console.error('Error sending notification:', error);
+        console.log('📲 Push notification sent:', ticket);
+      } catch (pushError) {
+        console.error('❌ Error sending push notification:', pushError);
       }
     } else {
-      console.log('No Expo Push Token available for user or user not found.');
+      console.log('ℹ️ No Expo Push Token available in user or company. Skipping push notification.');
     }
 
     res.status(200).json({ message: 'Worker availability updated successfully.', worker: updatedWorker });
   } catch (error) {
-    console.error('Error updating worker availability:', error);
+    console.error('❌ Error updating worker availability:', error);
     res.status(500).json({ message: 'Server error.' });
   }
 };

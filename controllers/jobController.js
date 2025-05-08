@@ -411,14 +411,12 @@ export const acceptJob = async (req, res) => {
 
     console.log(`✅ Job found: ${jobId}, Date: ${job.date}, Shift: ${job.shift}, Job Status: ${job.jobStatus}`);
 
-    // Prevent accepting already filled job
     if (job.jobStatus) {
       console.log(`⚠️ Job ${jobId} is already filled.`);
       return res.status(400).json({ message: 'This job has already been filled and is no longer accepting workers.' });
     }
 
-    // Check availability
-    const isAvailable = worker.availability.some(avail => 
+    const isAvailable = worker.availability.some(avail =>
       new Date(avail.date).toISOString().split('T')[0] === new Date(job.date).toISOString().split('T')[0] &&
       avail.shift.toString() === job.shift.toString()
     );
@@ -428,18 +426,15 @@ export const acceptJob = async (req, res) => {
       return res.status(400).json({ message: 'You can only accept jobs that match your availability.' });
     }
 
-    // Remove jobId from invitedJobs
     worker.invitedJobs = worker.invitedJobs.filter(id => id.toString() !== jobId);
     await worker.save();
     console.log(`🔄 Updated Worker: Removed Job ID from invitedJobs`);
 
-    // Prevent duplicate acceptance
     if (job.workers.map(id => id.toString()).includes(workerId.toString())) {
       console.log(`⚠️ Worker ${workerId} has already accepted job ${jobId}`);
       return res.status(400).json({ message: 'You have already accepted this job.' });
     }
 
-    // Add workerId to job
     job.workers.push(workerId);
 
     if (job.workers.length >= job.workersRequired) {
@@ -450,11 +445,22 @@ export const acceptJob = async (req, res) => {
     await job.save();
     console.log(`✅ Job ${jobId} updated successfully`);
 
-    // 🔔 Attempt to send push notification (optional)
+    // 🔔 Attempt to send push notification to user or company
+    let expoPushToken = null;
+
     const user = await User.findOne({ userCode: job.userCode });
-    if (user && user.expoPushToken) {
+    if (user?.expoPushToken) {
+      expoPushToken = user.expoPushToken;
+    } else {
+      const company = await CompanyList.findOne({ comp_code: job.userCode });
+      if (company?.expoPushToken) {
+        expoPushToken = company.expoPushToken;
+      }
+    }
+
+    if (expoPushToken) {
       const notification = {
-        to: user.expoPushToken,
+        to: expoPushToken,
         sound: 'default',
         body: `${worker.name} has accepted the job: ${job.title}.`,
         data: {
@@ -471,7 +477,7 @@ export const acceptJob = async (req, res) => {
         console.error('❌ Error sending push notification:', pushError);
       }
     } else {
-      console.log('ℹ️ No Expo Push Token found. Skipping push notification.');
+      console.log('ℹ️ No Expo Push Token found in user or company. Skipping push notification.');
     }
 
     // 📧 Always send job accepted email
@@ -543,11 +549,22 @@ export const declineJob = async (req, res) => {
     await job.save();
     console.log(`✅ Job ${jobId} updated successfully`);
 
-    // Send notification (optional)
+    // 🔔 Attempt to send push notification to user or company
+    let expoPushToken = null;
+
     const user = await User.findOne({ userCode: job.userCode });
-    if (user && user.expoPushToken) {
+    if (user?.expoPushToken) {
+      expoPushToken = user.expoPushToken;
+    } else {
+      const company = await CompanyList.findOne({ comp_code: job.userCode });
+      if (company?.expoPushToken) {
+        expoPushToken = company.expoPushToken;
+      }
+    }
+
+    if (expoPushToken) {
       const notification = {
-        to: user.expoPushToken,
+        to: expoPushToken,
         sound: 'default',
         body: `${worker.name} has declined the job: ${job.title}.`,
         data: {
@@ -564,10 +581,10 @@ export const declineJob = async (req, res) => {
         console.error('❌ Error sending push notification:', pushError);
       }
     } else {
-      console.log('ℹ️ No Expo Push Token found. Skipping push notification.');
+      console.log('ℹ️ No Expo Push Token found in user or company. Skipping push notification.');
     }
 
-    // Always send decline email
+    // 📧 Always send decline email
     try {
       await sendJobDeclinedEmail(
         job.userCode,
