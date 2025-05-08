@@ -262,6 +262,7 @@ export const getLoggedInCompany = async (req, res) => {
 // Function to upload company image
 export const uploadCompanyImage = async (req, res) => {
   const { companyId } = req.params;
+  const { image } = req.body;
 
   try {
     // Ensure the company is logged in
@@ -269,15 +270,14 @@ export const uploadCompanyImage = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized access.' });
     }
 
-    // Check if an image was uploaded
-    if (!req.body.image) {
+    if (!image) {
       return res.status(400).json({ message: 'No image provided.' });
     }
 
     // Update company with the image (base64 string)
     const updatedCompany = await CompanyList.findByIdAndUpdate(
       companyId,
-      { image: req.body.image }, // Store the base64 image
+      { image },
       { new: true }
     );
 

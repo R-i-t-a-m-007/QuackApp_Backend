@@ -826,19 +826,20 @@ export const getLoggedInWorker = async (req, res) => {
 // Upload worker image
 export const uploadWorkerImage = async (req, res) => {
   const { workerId } = req.params;
+  const { image } = req.body;
 
   try {
     if (!req.session.worker || req.session.worker._id !== workerId) {
       return res.status(401).json({ message: 'Unauthorized access.' });
     }
 
-    if (!req.body.image) {
+    if (!image) {
       return res.status(400).json({ message: 'No image provided.' });
     }
 
     const updatedWorker = await Worker.findByIdAndUpdate(
       workerId,
-      { image: req.body.image }, // Store the base64 image
+      { image },
       { new: true }
     );
 
